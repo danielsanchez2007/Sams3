@@ -1,0 +1,56 @@
+<?php
+
+namespace App\Providers;
+
+use App\Console\Commands\GenerateHojaVidaPdfCommand;
+use App\Models\Equipo;
+use App\Models\User;
+use App\Policies\EquipoPolicy;
+use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\ServiceProvider;
+use Illuminate\Validation\Rules\Password;
+
+class AppServiceProvider extends ServiceProvider
+{
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        //
+    }
+
+    /**
+     * Bootstrap any application services.
+     */
+    public function boot(): void
+    {
+        Password::defaults(function () {
+            return Password::min(10)->mixedCase()->numbers();
+        });
+
+        Gate::policy(User::class, UserPolicy::class);
+        Gate::policy(Equipo::class, EquipoPolicy::class);
+
+        $this->commands([
+            GenerateHojaVidaPdfCommand::class,
+        ]);
+
+        // Con Laragon bajo /public, forzar la raíz real del request
+        // para que route()/url() no apunten a /equipos sin el prefijo.
+        if (!$this->app->runningInConsole()) {
+            $this->app->booted(function () {
+                try {
+                    $request = request();
+                    if ($request) {
+                        URL::forceRootUrl($request->root());
+                    }
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            });
+        }
+    }
+}
