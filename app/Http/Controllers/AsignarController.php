@@ -10,6 +10,7 @@ use App\Models\EquipoAsignacionSolicitudItem;
 use App\Models\User;
 use App\Services\EmpresaContext;
 use App\Services\VistaOficina;
+use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -22,6 +23,7 @@ class AsignarController extends Controller
 {
     public function index(Request $request): View
     {
+        $this->assertCanViewModule('asignar');
         $isAdminOficina = $this->isAdminOficina();
         $empresaId = $this->resolveEmpresaId();
         $empresas = Empresa::activas()->orderMatrizFirst()->orderBy('nombre')->get(['id', 'nombre']);
@@ -75,6 +77,7 @@ class AsignarController extends Controller
      */
     public function users(Request $request)
     {
+        $this->assertCanViewModule('asignar');
         $empresaId = $this->resolveEmpresaId();
         $q = trim((string) $request->query('q', ''));
         $users = User::query()
@@ -107,6 +110,7 @@ class AsignarController extends Controller
      */
     public function equipos(Request $request)
     {
+        $this->assertCanViewModule('asignar');
         $isAdminOficina = $this->isAdminOficina();
         $empresaId = $request->query('empresa_id', '');
         $q = trim((string) $request->query('q', ''));
@@ -148,6 +152,7 @@ class AsignarController extends Controller
      */
     public function store(Request $request)
     {
+        $this->assertCanEditModule('asignar');
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'equipo_ids' => 'required|array',
@@ -186,6 +191,7 @@ class AsignarController extends Controller
 
     public function preview(Request $request): View
     {
+        $this->assertCanEditModule('asignar');
         $request->validate([
             'to_user_id' => ['required', 'integer', 'exists:users,id'],
             'equipo_ids' => ['required', 'array', 'min:1'],
@@ -221,11 +227,12 @@ class AsignarController extends Controller
 
     public function submitSolicitud(Request $request)
     {
+        $this->assertCanEditModule('asignar');
         $request->validate([
             'to_user_id' => ['required', 'integer', 'exists:users,id'],
             'equipo_ids' => ['required', 'array', 'min:1'],
             'equipo_ids.*' => ['required', 'integer', 'exists:equipos,id'],
-            'edited_html' => ['required', 'string'],
+            'edited_html' => ['required', 'string', 'max:500000'],
         ]);
 
         $toUserId = (int) $request->input('to_user_id');
@@ -255,7 +262,7 @@ class AsignarController extends Controller
                 'tipo' => 'entrega',
                 'estado' => 'pendiente',
                 'workflow_step' => 'pendiente_usuario',
-                'html_formulario' => $request->input('edited_html'),
+                'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('edited_html')),
             ]);
 
             foreach ($equipos as $equipo) {
@@ -334,7 +341,7 @@ class AsignarController extends Controller
                     'estado' => 'pendiente',
                     'workflow_step' => 'pendiente_revision_admin',
                     'respondido_at' => now(),
-                    'html_formulario' => $request->input('signed_html'),
+                    'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('signed_html')),
                     'comentario_revision' => null,
                 ]);
             } else {
@@ -350,7 +357,7 @@ class AsignarController extends Controller
                     'estado' => 'aceptada',
                     'workflow_step' => 'finalizada',
                     'respondido_at' => now(),
-                    'html_formulario' => $request->input('signed_html'),
+                    'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('signed_html')),
                     'comentario_revision' => null,
                 ]);
             }
@@ -365,6 +372,7 @@ class AsignarController extends Controller
 
     public function seguimiento(): View
     {
+        $this->assertCanViewModule('asignar');
         abort_unless($this->isAdminOficina(), 403);
 
         $solicitudes = EquipoAsignacionSolicitud::query()
@@ -382,6 +390,7 @@ class AsignarController extends Controller
 
     public function verFormatoSeguimiento(int $solicitudId): View
     {
+        $this->assertCanViewModule('asignar');
         abort_unless($this->isAdminOficina(), 403);
 
         $solicitud = EquipoAsignacionSolicitud::query()
@@ -397,10 +406,11 @@ class AsignarController extends Controller
 
     public function guardarFormatoSeguimiento(Request $request, int $solicitudId)
     {
+        $this->assertCanEditModule('asignar');
         abort_unless($this->isAdminOficina(), 403);
 
         $request->validate([
-            'edited_html' => ['required', 'string'],
+            'edited_html' => ['required', 'string', 'max:500000'],
         ]);
 
         $solicitud = EquipoAsignacionSolicitud::query()
@@ -414,7 +424,7 @@ class AsignarController extends Controller
         }
 
         $solicitud->update([
-            'html_formulario' => $request->input('edited_html'),
+            'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('edited_html')),
         ]);
 
         return redirect()->route('asignar.seguimiento.formato', $solicitud->id)
@@ -455,7 +465,7 @@ class AsignarController extends Controller
         $request->validate([
             'equipo_ids' => ['required', 'array', 'min:1'],
             'equipo_ids.*' => ['required', 'integer', 'exists:equipos,id'],
-            'edited_html' => ['required', 'string'],
+            'edited_html' => ['required', 'string', 'max:500000'],
             'firma_admin_confirmada' => ['required', 'in:1'],
         ]);
 
@@ -485,7 +495,7 @@ class AsignarController extends Controller
                 'tipo' => 'devolucion',
                 'estado' => 'pendiente',
                 'workflow_step' => 'pendiente_usuario',
-                'html_formulario' => $request->input('edited_html'),
+                'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('edited_html')),
             ]);
 
             foreach ($validIds as $equipoId) {
@@ -502,6 +512,7 @@ class AsignarController extends Controller
 
     public function resolverRevisionDevolucion(Request $request, int $solicitudId)
     {
+        $this->assertCanEditModule('asignar');
         abort_unless($this->isAdminOficina(), 403);
 
         $request->validate([
@@ -547,6 +558,7 @@ class AsignarController extends Controller
      */
     public function destroy(Request $request, int $asignacion)
     {
+        $this->assertCanEditModule('asignar');
         $a = EquipoAsignacion::find($asignacion);
         if (!$a) {
             return response()->json(['success' => false, 'message' => 'Asignación no encontrada.'], 404);

@@ -96,8 +96,24 @@ class RoleController extends Controller
         return $pref.'-'.$roleTag.'-'.$clean;
     }
 
+    private function assertRoleInScope(Role $role): void
+    {
+        $empresa = $this->empresaActivaParaScope();
+        if (!$empresa) {
+            return;
+        }
+
+        $prefijo = $this->prefijoEmpresa($empresa);
+        $name = strtoupper((string) $role->name);
+        $allowed = str_starts_with($name, $prefijo.'-')
+            || ((int) $role->id === (int) $empresa->default_role_id);
+
+        abort_unless($allowed && strtolower(trim((string) $role->name)) !== 'administrador', 404);
+    }
+
     public function complete(Request $request)
     {
+        $this->assertCanViewModule('roles');
         $q = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
         $perPageRaw = (string) $request->query('per_page', '15');
@@ -195,13 +211,27 @@ class RoleController extends Controller
 
     public function index()
     {
-        $roles = Role::withCount('users')->get();
+        $this->assertCanViewModule('roles');
+        $query = Role::withCount('users');
+        $empresa = $this->empresaActivaParaScope();
+        if ($empresa) {
+            $prefijo = $this->prefijoEmpresa($empresa);
+            $query->where(function ($q) use ($empresa, $prefijo) {
+                $q->where('name', 'like', $prefijo.'-%');
+                if ($empresa->default_role_id) {
+                    $q->orWhere('id', $empresa->default_role_id);
+                }
+            })->whereRaw('LOWER(name) != ?', ['administrador']);
+        }
+
+        $roles = $query->get();
 
         return view('admin.roles.index', compact('roles'));
     }
 
     public function create()
     {
+        $this->assertCanEditModule('roles');
         $empresa = $this->empresaActivaParaScope();
 
         // Apartados de acceso disponibles según módulos de la empresa activa.
@@ -214,6 +244,7 @@ class RoleController extends Controller
 
     public function store(Request $request)
     {
+        $this->assertCanEditModule('roles');
         $empresa = $this->empresaActivaParaScope();
         $name = $this->nombreRolScoped((string) $request->input('name', ''), $empresa);
         $request->merge(['name' => $name]);
@@ -246,11 +277,15 @@ class RoleController extends Controller
 
     public function edit(Role $role)
     {
+        $this->assertCanViewModule('roles');
+        $this->assertRoleInScope($role);
         return response()->json($role->only(['id', 'name', 'description', 'activo', 'permissions']));
     }
 
     public function update(Request $request, Role $role)
     {
+        $this->assertCanEditModule('roles');
+        $this->assertRoleInScope($role);
         $empresa = $this->empresaActivaParaScope();
         $name = $this->nombreRolScoped((string) $request->input('name', ''), $empresa);
         $request->merge(['name' => $name]);
@@ -278,6 +313,8 @@ class RoleController extends Controller
 
     public function toggleStatus(Role $role)
     {
+        $this->assertCanEditModule('roles');
+        $this->assertRoleInScope($role);
         $role->update(['activo' => ! $role->activo]);
         Cache::forget('sams_role_perms_adminoficina');
 
@@ -291,6 +328,8 @@ class RoleController extends Controller
 
     public function destroy(Role $role)
     {
+        $this->assertCanEditModule('roles');
+        $this->assertRoleInScope($role);
         try {
             if ($role->users()->exists()) {
                 return response()->json([
@@ -301,9 +340,10 @@ class RoleController extends Controller
             $role->delete();
             Cache::forget('sams_role_perms_adminoficina');
         } catch (\Throwable $e) {
+            report($e);
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo eliminar el rol: ' . $e->getMessage(),
+                'message' => 'No se pudo eliminar el rol.',
             ], 422);
         }
 

@@ -10,6 +10,7 @@ use App\Models\ClaseEquipo;
 use App\Models\TipoEquipo;
 use App\Models\AuditoriaEquipo;
 use App\Models\User;
+use App\Support\HtmlSanitizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -28,7 +29,8 @@ class HojaVidaController extends Controller
     private const HV_PDF_MIN_SIZE = 5000;
     public function index(Request $request)
     {
-        $empresaId = \App\Services\EmpresaContext::empresaId() ?? auth()->user()?->empresa_id ?? \App\Models\Empresa::orderBy('id')->value('id');
+        $this->assertCanViewModule('hoja_vida');
+        $empresaId = $this->resolveTenantEmpresaId();
         $clases = ClaseEquipo::query()
             ->with('tipoEquipo')
             ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
@@ -44,6 +46,7 @@ class HojaVidaController extends Controller
 
     public function clase(Request $request, ClaseEquipo $clase)
     {
+        $this->assertCanViewModule('hoja_vida');
         $plantilla = HojaVidaPlantilla::query()->where('clase_equipo_id', $clase->id)->first();
         if (!$plantilla) {
             return redirect()->route('hoja-vida.index')->with('error', '⚠️ Esa clase de equipo no tiene plantilla asignada.');
@@ -68,6 +71,7 @@ class HojaVidaController extends Controller
 
     public function form(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanViewModule('hoja_vida');
         abort_unless($equipo->activo, 404);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
@@ -112,6 +116,7 @@ class HojaVidaController extends Controller
 
     public function store(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanEditModule('hoja_vida');
         abort_unless($equipo->activo, 404);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
@@ -135,7 +140,7 @@ class HojaVidaController extends Controller
 
             $user = null;
 
-            $finalHtml = (string) $request->input('edited_html');
+            $finalHtml = HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('edited_html'));
             $finalHtml = $this->replaceTokens($finalHtml, $auto);
             $finalHtml = $this->blankRemainingTokens($finalHtml);
 
@@ -261,6 +266,7 @@ class HojaVidaController extends Controller
 
     public function pdf(ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanViewModule('hoja_vida');
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         if (function_exists('session_write_close')) {
@@ -308,7 +314,7 @@ class HojaVidaController extends Controller
                 ->with('success', '⏳ PDF en generación. Espera 10-20 segundos y vuelve a presionar Exportar PDF.');
         }
 
-        if ((string) request()->query('debug') === 'excel') {
+        if (config('app.debug') && (string) request()->query('debug') === 'excel') {
             return response()->json([
                 'equipo_id' => (int) $equipo->id,
                 'doc_id' => (int) $doc->id,
@@ -408,7 +414,7 @@ class HojaVidaController extends Controller
         $body = $this->removeEmptyTableCells($body);
         $stats['after_sanitize_len'] = strlen($body);
         $stats['after_sanitize_text_len'] = strlen(trim(strip_tags($body)));
-        if ((string) request()->query('debug') === '1') {
+        if (config('app.debug') && (string) request()->query('debug') === '1') {
             $wrapped = $this->wrapHtmlForPdf($body, $extracted['styles']);
             $wrapped = str_replace('<body>', '<body><pre style="font-size:12px; white-space:pre-wrap;">' . e(json_encode($stats, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) . '</pre>', $wrapped);
 
@@ -427,21 +433,15 @@ class HojaVidaController extends Controller
 
             $out = $pdf->output();
         } catch (\Throwable $e) {
-            $debugHtml = 'hoja_vida/pdf_debug/' . $equipo->id . '-' . now()->format('YmdHis') . '.html';
-            Storage::disk('public')->makeDirectory('hoja_vida/pdf_debug');
-            Storage::disk('public')->put($debugHtml, $wrappedWithStats);
+            report($e);
 
             return redirect()->route('hoja-vida.form', [$clase, $equipo])
-                ->with('error', '⚠️ No se pudo generar el PDF. Debug guardado en: storage/' . $debugHtml . '. Error: ' . $e->getMessage());
+                ->with('error', 'No se pudo generar el PDF. Intenta de nuevo.');
         }
 
         if (!is_string($out) || strlen($out) < 1200) {
-            $debugHtml = 'hoja_vida/pdf_debug/' . $equipo->id . '-' . now()->format('YmdHis') . '.html';
-            Storage::disk('public')->makeDirectory('hoja_vida/pdf_debug');
-            Storage::disk('public')->put($debugHtml, $wrappedWithStats);
-
             return redirect()->route('hoja-vida.form', [$clase, $equipo])
-                ->with('error', '⚠️ El PDF se generó vacío. Debug guardado en: storage/' . $debugHtml);
+                ->with('error', 'El PDF se generó vacío. Revisa el formato e intenta de nuevo.');
         }
 
         $filename = 'hoja_vida/pdf/' . $equipo->id . '-' . now()->format('YmdHis') . '.pdf';
@@ -464,6 +464,7 @@ class HojaVidaController extends Controller
 
     public function html(ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanViewModule('hoja_vida');
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
@@ -790,6 +791,7 @@ class HojaVidaController extends Controller
 
     public function download(ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanViewModule('hoja_vida');
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();

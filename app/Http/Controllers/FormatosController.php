@@ -14,6 +14,7 @@ class FormatosController extends Controller
 {
     public function index(Request $request)
     {
+        $this->assertCanViewModule('hoja_vida');
         $empresaId = \App\Services\EmpresaContext::empresaId() ?? auth()->user()?->empresa_id;
         $clases = ClaseEquipo::query()
             ->with('tipoEquipo')
@@ -33,6 +34,7 @@ class FormatosController extends Controller
 
     public function store(Request $request)
     {
+        $this->assertCanEditModule('hoja_vida');
         $request->validate([
             'clase_equipo_id' => ['required', 'integer', 'exists:clase_equipos,id'],
             'plantilla_excel' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
@@ -52,7 +54,7 @@ class FormatosController extends Controller
             report($e);
 
             return redirect()->route('formatos.index')
-                ->with('error', 'No se pudo guardar la plantilla: ' . $e->getMessage());
+                ->with('error', 'No se pudo guardar la plantilla.');
         }
 
         HojaVidaPlantilla::query()->updateOrCreate(
@@ -69,6 +71,7 @@ class FormatosController extends Controller
 
     public function download(HojaVidaPlantilla $plantilla)
     {
+        $this->assertCanViewModule('hoja_vida');
         $this->ensurePlantillaBelongsToEmpresa($plantilla);
         if (!$plantilla->plantilla_excel_path || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
             abort(404);
@@ -81,6 +84,7 @@ class FormatosController extends Controller
 
     public function formReemplazar(HojaVidaPlantilla $plantilla)
     {
+        $this->assertCanEditModule('hoja_vida');
         $this->ensurePlantillaBelongsToEmpresa($plantilla);
         $plantilla->load(['claseEquipo', 'tipoEquipo']);
         return view('admin.formatos.reemplazar', compact('plantilla'));
@@ -88,6 +92,7 @@ class FormatosController extends Controller
 
     public function reemplazar(Request $request, HojaVidaPlantilla $plantilla)
     {
+        $this->assertCanEditModule('hoja_vida');
         $this->ensurePlantillaBelongsToEmpresa($plantilla);
         $request->validate([
             'plantilla_excel' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
@@ -104,7 +109,7 @@ class FormatosController extends Controller
             report($e);
 
             return redirect()->route('formatos.index')
-                ->with('error', 'No se pudo guardar la plantilla: ' . $e->getMessage());
+                ->with('error', 'No se pudo guardar la plantilla.');
         }
 
         $plantilla->update(['plantilla_excel_path' => $path]);
@@ -119,11 +124,16 @@ class FormatosController extends Controller
 
     private function ensurePlantillaBelongsToEmpresa(HojaVidaPlantilla $plantilla): void
     {
-        $empresaId = \App\Services\EmpresaContext::empresaId() ?? auth()->user()?->empresa_id;
-        if (!$empresaId || !$plantilla->claseEquipo) {
+        $plantilla->loadMissing('claseEquipo');
+        $empresaId = $this->resolveTenantEmpresaId();
+        if (!$empresaId) {
+            if (!$this->moduleAuthz()->isGlobalAdmin()) {
+                abort(403, 'No tienes acceso a esta plantilla.');
+            }
+
             return;
         }
-        if ((int) $plantilla->claseEquipo->empresa_id !== (int) $empresaId) {
+        if (!$plantilla->claseEquipo || (int) $plantilla->claseEquipo->empresa_id !== (int) $empresaId) {
             abort(403, 'No tienes acceso a esta plantilla.');
         }
     }

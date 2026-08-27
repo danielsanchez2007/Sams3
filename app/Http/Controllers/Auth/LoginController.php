@@ -92,10 +92,12 @@ class LoginController extends Controller
         } catch (QueryException $e) {
             $raw = $e->getMessage() . ' ' . (string) $e->getPrevious()?->getMessage();
             if (str_contains($raw, '2002') || str_contains($raw, 'denegó') || str_contains($raw, 'refused')) {
+                $message = config('app.debug')
+                    ? 'No se puede conectar a la base de datos. Inicia MySQL en Laragon (Start All) y verifica DB_HOST, DB_PORT y DB_DATABASE en .env.'
+                    : 'No se pudo iniciar sesión. Intenta de nuevo más tarde.';
+
                 return back()
-                    ->withErrors([
-                        'email' => 'No se puede conectar a la base de datos. Inicia MySQL en Laragon (Start All) y verifica en .env que DB_HOST, DB_PORT y DB_DATABASE sean correctos (Laragon suele usar el puerto 3306).',
-                    ])
+                    ->withErrors(['email' => $message])
                     ->withInput($request->only('email'));
             }
             throw $e;

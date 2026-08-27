@@ -9,6 +9,7 @@ use App\Models\PrestamoTemporalItem;
 use App\Models\User;
 use App\Services\EmpresaContext;
 use App\Services\VistaOficina;
+use App\Support\HtmlSanitizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -25,6 +26,7 @@ class PrestamoTemporalController extends Controller
 {
     public function index(Request $request): View
     {
+        $this->assertCanViewModule('prestamos_temporales');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
 
         $q = trim((string) $request->query('q', ''));
@@ -106,6 +108,7 @@ class PrestamoTemporalController extends Controller
 
     public function store(Request $request)
     {
+        $this->assertCanEditModule('prestamos_temporales');
         abort_unless($this->canGestionarPrestamos(), 403);
 
         $request->validate([
@@ -114,7 +117,7 @@ class PrestamoTemporalController extends Controller
             'fecha_fin' => ['required', 'date', 'after_or_equal:fecha_salida'],
             'equipo_ids' => ['required', 'array', 'min:1', 'max:21'],
             'equipo_ids.*' => ['required', 'integer', 'exists:equipos,id'],
-            'edited_html' => ['required', 'string'],
+            'edited_html' => ['required', 'string', 'max:500000'],
         ]);
 
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
@@ -150,7 +153,7 @@ class PrestamoTemporalController extends Controller
                 'fecha_salida' => $request->input('fecha_salida'),
                 'fecha_fin' => $request->input('fecha_fin'),
                 'estado' => 'activo',
-                'html_formulario' => $request->input('edited_html'),
+                'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('edited_html')),
             ]);
 
             foreach ($equipos as $equipo) {
@@ -206,7 +209,7 @@ class PrestamoTemporalController extends Controller
         $prestamo->update([
             'estado' => 'pendiente_revision',
             'devuelto_at' => now(),
-            'html_formulario' => $request->input('signed_html'),
+            'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('signed_html')),
         ]);
 
         return redirect()->route('prestamos-temporales.index')->with('success', 'Solicitud de devolución enviada al administrador.');
@@ -299,7 +302,7 @@ class PrestamoTemporalController extends Controller
                 'estado' => 'finalizado',
                 'devuelto_at' => $prestamo->devuelto_at ?: now(),
                 'finalizado_at' => now(),
-                'html_formulario' => (string) data_get($data, 'reviewed_html', $prestamo->html_formulario),
+                'html_formulario' => HtmlSanitizer::sanitizeTemplateHtml((string) data_get($data, 'reviewed_html', $prestamo->html_formulario)),
             ]);
 
             $empresaDestino = (int) (EmpresaContext::empresaId() ?: auth()->user()?->empresa_id ?: 0);
@@ -349,6 +352,7 @@ class PrestamoTemporalController extends Controller
 
     public function preview(Request $request): View
     {
+        $this->assertCanEditModule('prestamos_temporales');
         abort_unless($this->canGestionarPrestamos(), 403);
 
         $request->validate([

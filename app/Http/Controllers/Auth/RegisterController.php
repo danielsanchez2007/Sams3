@@ -19,7 +19,7 @@ class RegisterController extends Controller
 
     public function showRegistrationForm()
     {
-        abort_unless(config('sams.allow_registration', true), 404);
+        abort_unless(config('sams.allow_registration', false), 404);
 
         $empresas = Empresa::activas()->orderBy('nombre')->get(['id', 'nombre']);
 
@@ -28,13 +28,13 @@ class RegisterController extends Controller
 
     public function register(Request $request)
     {
-        abort_unless(config('sams.allow_registration', true), 404);
+        abort_unless(config('sams.allow_registration', false), 404);
 
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'last_name' => ['nullable', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', 'max:72', Password::defaults()],
             'empresa_id' => ['required', 'integer', Rule::exists('empresas', 'id')],
         ]);
 

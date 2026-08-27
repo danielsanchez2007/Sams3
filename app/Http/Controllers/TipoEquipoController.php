@@ -2,9 +2,7 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Empresa;
 use App\Models\TipoEquipo;
-use App\Services\EmpresaContext;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -15,9 +13,15 @@ class TipoEquipoController extends Controller
         return redirect()->route('equipos.gestion');
     }
 
+    private function resolveEmpresaId(): int
+    {
+        return $this->assertTenantEmpresaId();
+    }
+
     public function store(Request $request)
     {
-        $empresaId = EmpresaContext::empresaId() ?? Empresa::orderBy('id')->value('id');
+        $this->assertCanEditModule('equipos');
+        $empresaId = $this->resolveEmpresaId();
         if (!$empresaId) {
             return redirect()->route('equipos.gestion')->with('error', 'Debe estar en una empresa para crear tipos.');
         }
@@ -40,7 +44,8 @@ class TipoEquipoController extends Controller
 
     public function edit(TipoEquipo $tipoEquipo)
     {
-        $empresaId = EmpresaContext::empresaId() ?? Empresa::orderBy('id')->value('id');
+        $this->assertCanViewModule('equipos');
+        $empresaId = $this->resolveEmpresaId();
         if ($tipoEquipo->empresa_id !== $empresaId) {
             abort(403);
         }
@@ -49,7 +54,8 @@ class TipoEquipoController extends Controller
 
     public function update(Request $request, TipoEquipo $tipoEquipo)
     {
-        $empresaId = EmpresaContext::empresaId() ?? Empresa::orderBy('id')->value('id');
+        $this->assertCanEditModule('equipos');
+        $empresaId = $this->resolveEmpresaId();
         if ($tipoEquipo->empresa_id !== $empresaId) {
             abort(403);
         }
@@ -70,7 +76,8 @@ class TipoEquipoController extends Controller
 
     public function destroy(TipoEquipo $tipoEquipo)
     {
-        $empresaId = EmpresaContext::empresaId() ?? Empresa::orderBy('id')->value('id');
+        $this->assertCanEditModule('equipos');
+        $empresaId = $this->resolveEmpresaId();
         if ($tipoEquipo->empresa_id !== $empresaId) {
             abort(403);
         }
@@ -84,7 +91,8 @@ class TipoEquipoController extends Controller
 
     public function toggleStatus(TipoEquipo $tipoEquipo)
     {
-        $empresaId = EmpresaContext::empresaId() ?? Empresa::orderBy('id')->value('id');
+        $this->assertCanEditModule('equipos');
+        $empresaId = $this->resolveEmpresaId();
         if ($tipoEquipo->empresa_id !== $empresaId) {
             abort(403);
         }

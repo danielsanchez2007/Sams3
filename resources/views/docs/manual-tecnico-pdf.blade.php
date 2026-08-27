@@ -53,7 +53,23 @@
         th, td { border: 1px solid #cbd5e1; padding: 4px 5px; vertical-align: top; }
         th { background: #f1f5f9; text-align: left; }
         code, pre { font-family: DejaVu Sans Mono, monospace; font-size: 7.5pt; }
-        pre { background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 8px; white-space: pre-wrap; word-wrap: break-word; }
+        table.doc-control th { background: #1a3a6b; color: #fff; width: 28%; }
+        table.doc-control td { background: #fafafa; }
+        .notice {
+            border-left: 3px solid #f59e0b;
+            background: #fffbeb;
+            padding: 6px 8px;
+            margin: 8px 0;
+            font-size: 8pt;
+        }
+        pre {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            padding: 6px 8px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 7.5pt;
+        }
         ul { padding-left: 18px; margin: 4px 0; }
         header.doc-head { margin-bottom: 12px; }
         footer.muted { font-size: 8pt; }

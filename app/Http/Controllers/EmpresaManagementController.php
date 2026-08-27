@@ -249,6 +249,7 @@ class EmpresaManagementController extends Controller
 
     public function geocode(Request $request)
     {
+        $this->assertCanEditModule('empresa');
         $request->validate([
             'address' => 'required|string|max:600',
         ]);
@@ -386,7 +387,7 @@ class EmpresaManagementController extends Controller
             report($e);
 
             return back()->withInput()->withErrors([
-                'logo_principal_file' => 'No se pudo guardar la imagen: ' . $e->getMessage(),
+                'logo_principal_file' => 'No se pudo guardar la imagen.',
             ]);
         }
 
@@ -474,7 +475,7 @@ class EmpresaManagementController extends Controller
             report($e);
 
             return back()->withInput()->withErrors([
-                'logo_principal_file' => 'No se pudo guardar la imagen: ' . $e->getMessage(),
+                'logo_principal_file' => 'No se pudo guardar la imagen.',
             ]);
         }
 

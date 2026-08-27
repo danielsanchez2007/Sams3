@@ -9,6 +9,8 @@ use App\Services\EmpresaContext;
 use App\Services\VistaOficina;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class EquipoManagementController extends Controller
 {
@@ -23,6 +25,7 @@ class EquipoManagementController extends Controller
 
     public function index()
     {
+        $this->assertCanViewModule('equipos');
         $empresaId = $this->empresaActivaId();
 
         $tiposQuery = TipoEquipo::with([
@@ -46,6 +49,7 @@ class EquipoManagementController extends Controller
 
     public function storeTipo(Request $request)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         $isOficina = VistaOficina::mostrarMenuOficina(auth()->user());
 
@@ -71,16 +75,20 @@ class EquipoManagementController extends Controller
             ]);
 
             return redirect()->route('equipos.gestion')->with('success', '✅ Tipo de equipo creado exitosamente');
-            
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            report($e);
+
             return redirect()->back()
-                ->with('error', '❌ Error al crear el tipo: ' . $e->getMessage())
+                ->with('error', 'No se pudo crear el tipo.')
                 ->withInput();
         }
     }
 
     public function storeClase(Request $request)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         $isOficina = VistaOficina::mostrarMenuOficina(auth()->user());
         try {
@@ -108,16 +116,20 @@ class EquipoManagementController extends Controller
             ]);
 
             return redirect()->route('equipos.gestion')->with('success', '✅ Clase de equipo creada exitosamente');
-            
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            report($e);
+
             return redirect()->back()
-                ->with('error', '❌ Error al crear la clase: ' . $e->getMessage())
+                ->with('error', 'No se pudo crear la clase.')
                 ->withInput();
         }
     }
 
     public function editTipo($id)
     {
+        $this->assertCanViewModule('equipos');
         $empresaId = $this->empresaActivaId();
         $tipo = TipoEquipo::where('empresa_id', $empresaId)->findOrFail($id);
         if (VistaOficina::mostrarMenuOficina(auth()->user()) && !str_starts_with(mb_strtolower((string) $tipo->nombre), 'oficina - ')) {
@@ -128,6 +140,7 @@ class EquipoManagementController extends Controller
 
     public function editClase($id)
     {
+        $this->assertCanViewModule('equipos');
         $empresaId = $this->empresaActivaId();
         $clase = ClaseEquipo::with('tipoEquipo')->where('empresa_id', $empresaId)->findOrFail($id);
         if (VistaOficina::mostrarMenuOficina(auth()->user()) && !str_starts_with(mb_strtolower((string) ($clase->tipoEquipo?->nombre ?? '')), 'oficina - ')) {
@@ -142,6 +155,7 @@ class EquipoManagementController extends Controller
 
     public function updateTipo(Request $request, $id)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         try {
             $tipo = TipoEquipo::where('empresa_id', $empresaId)->findOrFail($id);
@@ -170,16 +184,20 @@ class EquipoManagementController extends Controller
             ]);
 
             return redirect()->route('equipos.gestion')->with('success', '✅ Tipo de equipo actualizado exitosamente');
-            
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            report($e);
+
             return redirect()->back()
-                ->with('error', '❌ Error al actualizar el tipo: ' . $e->getMessage())
+                ->with('error', 'No se pudo actualizar el tipo.')
                 ->withInput();
         }
     }
 
     public function updateClase(Request $request, $id)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         try {
             $clase = ClaseEquipo::where('empresa_id', $empresaId)->findOrFail($id);
@@ -189,7 +207,7 @@ class EquipoManagementController extends Controller
                     return redirect()->back()->with('error', 'En modo Oficina solo puedes mover/editar clases dentro de tipos "Oficina - ...".')->withInput();
                 }
             }
-            
+
             $request->validate([
                 'tipo_equipo_id' => ['required', Rule::exists('tipo_equipos', 'id')->where('empresa_id', $empresaId)],
                 'nombre' => 'required|string|max:100',
@@ -205,16 +223,20 @@ class EquipoManagementController extends Controller
             ]);
 
             return redirect()->route('equipos.gestion')->with('success', '✅ Clase de equipo actualizada exitosamente');
-            
-        } catch (\Exception $e) {
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            report($e);
+
             return redirect()->back()
-                ->with('error', '❌ Error al actualizar la clase: ' . $e->getMessage())
+                ->with('error', 'No se pudo actualizar la clase.')
                 ->withInput();
         }
     }
 
     public function deleteTipo($id)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         try {
             $tipo = TipoEquipo::where('empresa_id', $empresaId)->findOrFail($id);
@@ -222,21 +244,24 @@ class EquipoManagementController extends Controller
                 abort(404);
             }
             $tipo->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => '🗑️ Tipo de equipo eliminado exitosamente.'
             ]);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => '❌ Error al eliminar el tipo: ' . $e->getMessage()
-            ]);
+                'message' => 'No se pudo eliminar el tipo.'
+            ], 422);
         }
     }
 
     public function deleteClase($id)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         try {
             $clase = ClaseEquipo::with('tipoEquipo')->where('empresa_id', $empresaId)->findOrFail($id);
@@ -244,21 +269,24 @@ class EquipoManagementController extends Controller
                 abort(404);
             }
             $clase->delete();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => '🗑️ Clase de equipo eliminada exitosamente.'
             ]);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => '❌ Error al eliminar la clase: ' . $e->getMessage()
-            ]);
+                'message' => 'No se pudo eliminar la clase.'
+            ], 422);
         }
     }
 
     public function toggleTipoStatus($id)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         try {
             $tipo = TipoEquipo::where('empresa_id', $empresaId)->findOrFail($id);
@@ -266,22 +294,25 @@ class EquipoManagementController extends Controller
                 abort(404);
             }
             $tipo->update(['activo' => !$tipo->activo]);
-            
+
             $status = $tipo->activo ? 'activado' : 'desactivado';
             return response()->json([
                 'success' => true,
                 'message' => "✅ Tipo de equipo {$status} exitosamente."
             ]);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => '❌ Error al cambiar estado: ' . $e->getMessage()
-            ]);
+                'message' => 'No se pudo cambiar el estado.'
+            ], 422);
         }
     }
 
     public function toggleClaseStatus($id)
     {
+        $this->assertCanEditModule('equipos');
         $empresaId = $this->empresaActivaId();
         try {
             $clase = ClaseEquipo::with('tipoEquipo')->where('empresa_id', $empresaId)->findOrFail($id);
@@ -289,17 +320,19 @@ class EquipoManagementController extends Controller
                 abort(404);
             }
             $clase->update(['activo' => !$clase->activo]);
-            
+
             $status = $clase->activo ? 'activada' : 'desactivada';
             return response()->json([
                 'success' => true,
                 'message' => "✅ Clase de equipo {$status} exitosamente."
             ]);
-        } catch (\Exception $e) {
+        } catch (Throwable $e) {
+            report($e);
+
             return response()->json([
                 'success' => false,
-                'message' => '❌ Error al cambiar estado: ' . $e->getMessage()
-            ]);
+                'message' => 'No se pudo cambiar el estado.'
+            ], 422);
         }
     }
 }

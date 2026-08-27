@@ -29,7 +29,8 @@ class ForcedPasswordController extends Controller
                 'required',
                 'string',
                 'confirmed',
-                Password::min(10)->mixedCase()->numbers()->symbols(),
+                'max:72',
+                Password::defaults()->symbols(),
             ],
         ]);
 

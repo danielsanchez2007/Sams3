@@ -18,6 +18,7 @@ class CargoController extends Controller
 
     public function complete(Request $request)
     {
+        $this->assertCanViewModule('cargos');
         $q = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
         $perPageRaw = (string) $request->query('per_page', '15');
@@ -94,6 +95,7 @@ class CargoController extends Controller
 
     public function index()
     {
+        $this->assertCanViewModule('cargos');
         $empresaId = $this->empresaActivaId();
         if (!$empresaId) {
             abort(403);
@@ -105,11 +107,14 @@ class CargoController extends Controller
 
     public function create()
     {
+        $this->assertCanEditModule('cargos');
+        $this->assertTenantEmpresaId();
         return view('admin.cargos.create');
     }
 
     public function store(Request $request)
     {
+        $this->assertCanEditModule('cargos');
         $empresaId = $this->empresaActivaId();
         if (!$empresaId) {
             abort(403);
@@ -137,11 +142,17 @@ class CargoController extends Controller
 
     public function edit(Cargo $cargo)
     {
+        $this->assertCanViewModule('cargos');
+        $empresaId = $this->empresaActivaId();
+        if (!$empresaId || (int) $cargo->empresa_id !== (int) $empresaId) {
+            abort(404);
+        }
         return response()->json($cargo->only(['id', 'name', 'description', 'activo']));
     }
 
     public function update(Request $request, Cargo $cargo)
     {
+        $this->assertCanEditModule('cargos');
         $empresaId = $this->empresaActivaId();
         if (!$empresaId || (int) $cargo->empresa_id !== (int) $empresaId) {
             abort(404);
@@ -167,6 +178,7 @@ class CargoController extends Controller
 
     public function destroy(Cargo $cargo)
     {
+        $this->assertCanEditModule('cargos');
         $empresaId = $this->empresaActivaId();
         if (!$empresaId || (int) $cargo->empresa_id !== (int) $empresaId) {
             abort(404);
@@ -181,9 +193,10 @@ class CargoController extends Controller
             }
             $cargo->delete();
         } catch (\Throwable $e) {
+            report($e);
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo eliminar el cargo: ' . $e->getMessage(),
+                'message' => 'No se pudo eliminar el cargo.',
             ], 422);
         }
 
@@ -195,6 +208,7 @@ class CargoController extends Controller
 
     public function toggleStatus(Cargo $cargo)
     {
+        $this->assertCanEditModule('cargos');
         $empresaId = $this->empresaActivaId();
         if (!$empresaId || (int) $cargo->empresa_id !== (int) $empresaId) {
             abort(404);

@@ -28,6 +28,10 @@ class ManualTecnicoController extends Controller
         return [
             'generatedAt' => now()->toIso8601String(),
             'generatedHuman' => now()->timezone(config('app.timezone'))->format('Y-m-d H:i:s T'),
+            'documentId' => 'SAMS-MT-'.now()->format('Y'),
+            'documentVersion' => '1.0.0',
+            'documentClassification' => 'Uso interno — Prevention World',
+            'organization' => 'Prevention World · Instituto Prevention World',
             'appName' => config('app.name'),
             'appUrl' => config('app.url'),
             'laravelVersion' => app()->version(),

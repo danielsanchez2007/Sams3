@@ -3,15 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\ClaseEquipo;
-use App\Models\Empresa;
 use App\Models\Equipo;
-use App\Services\EmpresaContext;
 use App\Models\EquipoBaja;
 use App\Models\EquipoImagen;
 use App\Models\EquipoInspeccion;
 use App\Models\HojaVidaDocumento;
 use App\Models\HojaVidaPlantilla;
 use App\Models\User;
+use App\Support\HtmlSanitizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -20,9 +19,17 @@ use PhpOffice\PhpSpreadsheet\Writer\Html as SpreadsheetHtmlWriter;
 
 class ExportarController extends Controller
 {
+    private function assertEquipoTenant(Equipo $equipo): void
+    {
+        if ($equipo->empresa_id) {
+            $this->moduleAuthz()->assertTenantOwns((int) $equipo->empresa_id);
+        }
+    }
+
     public function index(Request $request)
     {
-        $empresaId = EmpresaContext::empresaId() ?? auth()->user()?->empresa_id ?? Empresa::orderBy('id')->value('id');
+        $this->assertCanViewModule('exportar');
+        $empresaId = $this->resolveTenantEmpresaId();
         $query = Equipo::query()
             ->with(['imagenes', 'claseEquipo', 'tipoEquipo'])
             ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId));
@@ -102,6 +109,7 @@ class ExportarController extends Controller
 
     public function actualizar(Request $request)
     {
+        $this->assertCanEditModule('exportar');
         if (\Illuminate\Support\Facades\Schema::hasColumn('equipos', 'hoja_vida_completa_html')) {
             Equipo::query()->update(['hoja_vida_completa_html' => null]);
         }
@@ -111,6 +119,8 @@ class ExportarController extends Controller
 
     public function downloadHojaVida(Equipo $equipo)
     {
+        $this->assertCanViewModule('exportar');
+        $this->assertEquipoTenant($equipo);
         $clase = $equipo->claseEquipo;
         if (!$clase) {
             return redirect()->route('exportar.index')->with('error', 'Equipo sin clase asignada.');
@@ -121,6 +131,8 @@ class ExportarController extends Controller
 
     public function downloadInspeccion(Equipo $equipo)
     {
+        $this->assertCanViewModule('exportar');
+        $this->assertEquipoTenant($equipo);
         $inspeccion = $equipo->inspecciones()->orderByDesc('validez_hasta')->first();
         if (!$inspeccion) {
             return redirect()->route('exportar.index')->with('error', 'No hay inspección para este equipo.');
@@ -134,6 +146,8 @@ class ExportarController extends Controller
 
     public function downloadBaja(Equipo $equipo)
     {
+        $this->assertCanViewModule('exportar');
+        $this->assertEquipoTenant($equipo);
         $baja = EquipoBaja::query()->where('equipo_id', $equipo->id)->orderByDesc('id')->first();
         if (!$baja) {
             return redirect()->route('exportar.index')->with('error', 'No hay formato de baja para este equipo.');
@@ -146,6 +160,8 @@ class ExportarController extends Controller
 
     public function previewHojaVidaCompleta(Equipo $equipo)
     {
+        $this->assertCanViewModule('exportar');
+        $this->assertEquipoTenant($equipo);
         $result = $this->buildHojaVidaCompletaContent($equipo);
         if (!$result) {
             return redirect()->route('exportar.index')->with('error', 'No hay contenido para generar la hoja de vida completa.');
@@ -159,6 +175,8 @@ class ExportarController extends Controller
 
     public function downloadHojaVidaCompletaWithHtml(Request $request, Equipo $equipo)
     {
+        $this->assertCanViewModule('exportar');
+        $this->assertEquipoTenant($equipo);
         $request->validate(['edited_html' => ['required', 'string', 'max:5000000']]);
         $body = (string) $request->input('edited_html');
         $fullHtml = $this->wrapHtmlForPdf($body);
@@ -184,8 +202,10 @@ class ExportarController extends Controller
 
     public function guardarHojaVidaFromPreview(Request $request, Equipo $equipo)
     {
+        $this->assertCanEditModule('exportar');
+        $this->assertEquipoTenant($equipo);
         $request->validate(['edited_html' => ['required', 'string', 'max:5000000']]);
-        $fullBody = (string) $request->input('edited_html');
+        $fullBody = HtmlSanitizer::sanitizeTemplateHtml((string) $request->input('edited_html'));
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
         if (!$doc) {
@@ -207,6 +227,8 @@ class ExportarController extends Controller
 
     public function downloadHojaVidaCompleta(Equipo $equipo)
     {
+        $this->assertCanViewModule('exportar');
+        $this->assertEquipoTenant($equipo);
         @ini_set('max_execution_time', 120);
         @set_time_limit(120);
         @ini_set('memory_limit', '512M');

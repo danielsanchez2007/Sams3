@@ -33,7 +33,7 @@ class ProfileController extends Controller
             'gender' => 'nullable|in:hombre,mujer,otro',
             'gender_other' => 'nullable|string|max:255|required_if:gender,otro',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => ['nullable', 'confirmed', Password::defaults()],
+            'password' => ['nullable', 'confirmed', 'max:72', Password::defaults()],
             'document_type' => 'required|string|in:CC,CE,TI,PP',
             'document_number' => 'required|string|max:50',
             'phone' => 'nullable|string|max:20',
@@ -43,8 +43,8 @@ class ProfileController extends Controller
             'has_corporate_phone' => 'boolean',
             'corporate_phone' => 'nullable|string|max:20|required_if:has_corporate_phone,1',
             'birth_date' => 'nullable|date',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
-            'signature' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+            'signature' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'signature_drawn' => 'nullable|string|max:500000',
         ];
 
@@ -83,7 +83,7 @@ class ProfileController extends Controller
                 report($e);
 
                 return back()->withInput()->withErrors([
-                    'photo' => 'No se pudo guardar la foto: ' . $e->getMessage(),
+                    'photo' => 'No se pudo guardar la foto. Usa JPEG, PNG o WebP de máximo 4 MB.',
                 ]);
             }
         }
@@ -98,7 +98,7 @@ class ProfileController extends Controller
                 report($e);
 
                 return back()->withInput()->withErrors([
-                    'signature' => 'No se pudo guardar la firma: ' . $e->getMessage(),
+                    'signature' => 'No se pudo guardar la firma. Usa JPEG, PNG o WebP de máximo 4 MB.',
                 ]);
             }
         } elseif ($request->filled('signature_drawn')) {

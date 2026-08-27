@@ -99,7 +99,7 @@ class EquiposBajaController extends Controller
             report($e);
 
             return redirect()->route('equipos.bajas.index')
-                ->with('error', 'No se pudo guardar el formato: ' . $e->getMessage());
+                ->with('error', 'No se pudo guardar el formato.');
         }
 
         AppSetting::setValue($this->plantillaExcelKey(), $path);

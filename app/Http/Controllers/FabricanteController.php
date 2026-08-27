@@ -10,6 +10,7 @@ class FabricanteController extends Controller
 {
     public function complete(Request $request)
     {
+        $this->assertCanViewModule('fabricantes');
         $q = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
         $perPageRaw = (string) $request->query('per_page', '15');
@@ -64,17 +65,20 @@ class FabricanteController extends Controller
 
     public function index()
     {
+        $this->assertCanViewModule('fabricantes');
         $fabricantes = Fabricante::all();
         return view('admin.fabricantes.index', compact('fabricantes'));
     }
 
     public function create()
     {
+        $this->assertCanEditModule('fabricantes');
         return view('admin.fabricantes.create');
     }
 
     public function store(Request $request)
     {
+        $this->assertCanEditModule('fabricantes');
         $request->validate([
             'name' => 'required|string|max:255|unique:fabricantes,name',
             'description' => 'nullable|string',
@@ -97,6 +101,7 @@ class FabricanteController extends Controller
 
     public function edit(Fabricante $fabricante)
     {
+        $this->assertCanViewModule('fabricantes');
         return response()->json($fabricante->only([
             'id',
             'name',
@@ -110,6 +115,7 @@ class FabricanteController extends Controller
 
     public function update(Request $request, Fabricante $fabricante)
     {
+        $this->assertCanEditModule('fabricantes');
         $request->validate([
             'name' => 'required|string|max:255|unique:fabricantes,name,' . $fabricante->id,
             'description' => 'nullable|string',
@@ -131,12 +137,14 @@ class FabricanteController extends Controller
 
     public function destroy(Fabricante $fabricante)
     {
+        $this->assertCanEditModule('fabricantes');
         try {
             $fabricante->delete();
         } catch (\Throwable $e) {
+            report($e);
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo eliminar el fabricante (puede tener equipos asociados): ' . $e->getMessage(),
+                'message' => 'No se pudo eliminar el fabricante (puede tener equipos asociados).',
             ], 422);
         }
 
@@ -148,6 +156,7 @@ class FabricanteController extends Controller
 
     public function toggleStatus(Fabricante $fabricante)
     {
+        $this->assertCanEditModule('fabricantes');
         $fabricante->update(['activo' => !$fabricante->activo]);
         
         $status = $fabricante->activo ? 'activado' : 'desactivado';

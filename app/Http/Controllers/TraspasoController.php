@@ -163,7 +163,7 @@ class TraspasoController extends Controller
 
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'No se pudo completar el traspaso: ' . $e->getMessage());
+                ->with('error', 'No se pudo completar el traspaso.');
         }
     }
 }

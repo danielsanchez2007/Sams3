@@ -7,7 +7,7 @@ use App\Services\EmpresaContext;
 
 class UserPolicy
 {
-    private function canEditUsersModule(User $actor): bool
+    private function canViewUsersModule(User $actor): bool
     {
         if (!$actor->exists) {
             return false;
@@ -30,13 +30,29 @@ class UserPolicy
         if (!in_array($val, ['none', 'view', 'edit'], true)) {
             $val = 'none';
         }
-        $moduloPermiteEdicion = $val === 'edit';
+        $moduloPermiteVista = in_array($val, ['view', 'edit'], true);
 
         if ($isGlobalAdmin) {
-            return $moduloPermiteEdicion;
+            return $moduloPermiteVista;
         }
 
-        return $moduloPermiteEdicion && ($isEmpresaAdminByRole || $isEmpresaAdminByPerm);
+        return $moduloPermiteVista && ($isEmpresaAdminByRole || $isEmpresaAdminByPerm);
+    }
+
+    private function canEditUsersModule(User $actor): bool
+    {
+        if (!$this->canViewUsersModule($actor)) {
+            return false;
+        }
+
+        $empresa = EmpresaContext::empresaActiva();
+        if (!$empresa || !is_array($empresa->modulos)) {
+            return true;
+        }
+
+        $val = $empresa->modulos['users'] ?? $empresa->modulos['gestion_principal'] ?? 'none';
+
+        return $val === 'edit';
     }
 
     private function userInCurrentEmpresa(User $actor, User $target): bool
@@ -50,7 +66,7 @@ class UserPolicy
 
     public function viewAny(User $actor): bool
     {
-        return $this->canEditUsersModule($actor) || $actor->empresa_id !== null;
+        return $this->canViewUsersModule($actor);
     }
 
     public function view(User $actor, User $target): bool

@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserController;
@@ -32,6 +31,7 @@ use App\Http\Controllers\SugerenciaController;
 use App\Http\Controllers\ModoOficinaController;
 use App\Http\Controllers\PrestamoTemporalController;
 use App\Http\Controllers\ManualTecnicoController;
+use App\Http\Controllers\PublicStorageController;
 
 /*
 |--------------------------------------------------------------------------
@@ -52,11 +52,9 @@ Route::get('/inicio', [DashboardController::class, 'index'])->name('sistema.info
 
 // Fallback para servir archivos públicos en entornos donde el enlace public/storage falle.
 // Se protege con auth para evitar exponer archivos sensibles por accidente.
-Route::middleware(['auth'])->get('/storage/{path}', function (string $path) {
-    abort_unless(Storage::disk('public')->exists($path), 404);
-
-    return Storage::disk('public')->response($path);
-})->where('path', '.*')->name('storage.public');
+Route::middleware(['auth'])->get('/storage/{path}', [PublicStorageController::class, 'show'])
+    ->where('path', '.*')
+    ->name('storage.public');
 
 // Contraseña obligatoria (tras registro / alta): sin este middleware de bloqueo
 Route::middleware(['auth'])->group(function () {
@@ -161,7 +159,7 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
 
     // Asistente Gemini (chat con voz)
     Route::get('/asistente', [GeminiChatController::class, 'index'])->name('gemini.index');
-    Route::post('/asistente/chat', [GeminiChatController::class, 'chat'])->name('gemini.chat');
+    Route::post('/asistente/chat', [GeminiChatController::class, 'chat'])->middleware('throttle:ai-chat')->name('gemini.chat');
 
     // Rutas de usuarios
     Route::get('/users/complete', [UserController::class, 'complete'])->name('users.complete');
@@ -228,7 +226,7 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
     Route::post('/empresa/entrar/{empresa}', [EmpresaManagementController::class, 'entrarEmpresa'])->name('empresa.entrar');
     Route::post('/empresa/salir', [EmpresaManagementController::class, 'salirEmpresa'])->name('empresa.salir');
 
-    Route::post('/empresa/geocode', [EmpresaManagementController::class, 'geocode'])->name('empresa.geocode');
+    Route::post('/empresa/geocode', [EmpresaManagementController::class, 'geocode'])->middleware('throttle:geocode')->name('empresa.geocode');
 
     // Empresa CRUD
     Route::post('/empresa', [EmpresaManagementController::class, 'storeEmpresa'])->name('empresa.store');
@@ -342,6 +340,6 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
     });
 });
 
-Auth::routes(['register' => (bool) config('sams.allow_registration', true)]);
+Auth::routes(['register' => (bool) config('sams.allow_registration', false)]);
 
 Route::get('/home', [HomeController::class, 'index'])->name('home');

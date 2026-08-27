@@ -38,4 +38,8 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect()->route('login')
                 ->with('warning', 'La sesión de seguridad expiró. Vuelve a iniciar sesión.');
         });
+
+        $exceptions->shouldRenderJsonWhen(function (Request $request) {
+            return $request->expectsJson() || $request->is('asistente/*') || $request->is('empresa/geocode');
+        });
     })->create();

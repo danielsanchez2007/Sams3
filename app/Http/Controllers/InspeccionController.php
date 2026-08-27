@@ -20,17 +20,18 @@ class InspeccionController extends Controller
 {
     private function ensureCanEditInspeccion(): void
     {
-        $empresaActiva = \App\Services\EmpresaContext::empresaActiva();
-        $modulos = $empresaActiva?->modulos ?? [];
-        $isPreventionWorldAdmin = auth()->user() && !auth()->user()->empresa_id && (strtolower(trim(auth()->user()->role?->name ?? '')) === 'administrador');
-        if (!$isPreventionWorldAdmin && ($modulos['inspeccion'] ?? 'edit') === 'view') {
-            abort(403, 'No tienes permiso para crear o editar inspecciones. Solo puedes ver.');
-        }
+        $this->assertCanEditModule('inspeccion');
+    }
+
+    private function ensureCanViewInspeccion(): void
+    {
+        $this->assertCanViewModule('inspeccion');
     }
 
     public function index(Request $request)
     {
-        $empresaId = \App\Services\EmpresaContext::empresaId() ?? auth()->user()?->empresa_id ?? \App\Models\Empresa::orderBy('id')->value('id');
+        $this->ensureCanViewInspeccion();
+        $empresaId = $this->resolveTenantEmpresaId();
         $clases = ClaseEquipo::query()
             ->with('tipoEquipo')
             ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
@@ -75,7 +76,7 @@ class InspeccionController extends Controller
             report($e);
 
             return redirect()->route('inspeccion.index')
-                ->with('error', 'No se pudo guardar la plantilla: ' . $e->getMessage());
+                ->with('error', 'No se pudo guardar la plantilla.');
         }
 
         $plantilla = InspeccionPlantilla::query()->firstOrNew([
@@ -99,6 +100,11 @@ class InspeccionController extends Controller
 
     public function equipos(Request $request, ClaseEquipo $clase)
     {
+        $this->ensureCanViewInspeccion();
+        $empresaId = $this->resolveTenantEmpresaId();
+        if ($empresaId && (int) $clase->empresa_id !== (int) $empresaId) {
+            abort(403);
+        }
         $plantilla = InspeccionPlantilla::query()->where('clase_equipo_id', $clase->id)->first();
         if (!$plantilla || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
             return redirect()->route('inspeccion.index')->with('error', 'Esta clase de equipo no tiene formato de inspección asignado.');
@@ -129,10 +135,7 @@ class InspeccionController extends Controller
             ->get()
             ->groupBy('equipo_id');
 
-        $empresaActiva = \App\Services\EmpresaContext::empresaActiva();
-        $modulos = $empresaActiva?->modulos ?? [];
-        $isPreventionWorldAdmin = auth()->user() && !auth()->user()->empresa_id && (strtolower(trim(auth()->user()->role?->name ?? '')) === 'administrador');
-        $canEditInspeccion = $isPreventionWorldAdmin || ($modulos['inspeccion'] ?? 'edit') === 'edit';
+        $canEditInspeccion = $this->moduleAuthz()->canEditModule('inspeccion');
 
         return view('admin.inspeccion.equipos', compact('clase', 'plantilla', 'equipos', 'ultimaInspeccionByEquipo', 'inspeccionesByEquipo', 'hoy', 'canEditInspeccion'));
     }
@@ -314,6 +317,7 @@ class InspeccionController extends Controller
 
     public function download(EquipoInspeccion $inspeccion)
     {
+        $this->ensureCanViewInspeccion();
         if (!$inspeccion->pdf_path || !Storage::disk('public')->exists($inspeccion->pdf_path)) {
             return redirect()->route('inspeccion.edit', $inspeccion)->with('error', 'No hay PDF generado para esta inspección.');
         }
@@ -326,6 +330,7 @@ class InspeccionController extends Controller
      */
     public function html(EquipoInspeccion $inspeccion)
     {
+        $this->ensureCanViewInspeccion();
         $html = (string) $inspeccion->edited_html;
         $html = $this->convertStorageImagesForPdf($html);
 

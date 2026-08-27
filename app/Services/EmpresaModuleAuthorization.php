@@ -67,6 +67,20 @@ class EmpresaModuleAuthorization
         return $this->moduleLevel($module, $fallbackModule, $defaultWhenUnset) === 'edit';
     }
 
+    public function assertCanViewModule(string $module, ?string $fallbackModule = null, string $defaultWhenUnset = 'edit'): void
+    {
+        if (!$this->canViewModule($module, $fallbackModule, $defaultWhenUnset)) {
+            abort(403, 'No tienes permiso para acceder a este módulo.');
+        }
+    }
+
+    public function assertCanEditModule(string $module, ?string $fallbackModule = null, string $defaultWhenUnset = 'edit'): void
+    {
+        if (!$this->canEditModule($module, $fallbackModule, $defaultWhenUnset)) {
+            abort(403, 'No tienes permiso para modificar este módulo.');
+        }
+    }
+
     public function assertTenantOwns(int $resourceEmpresaId): void
     {
         $activaId = $this->resolveEmpresaActivaId();

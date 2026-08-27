@@ -15,6 +15,7 @@ class GrupoController extends Controller
 {
     public function complete(Request $request)
     {
+        $this->assertCanViewModule('grupos');
         $q = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
         $perPageRaw = (string) $request->query('per_page', '15');
@@ -80,6 +81,7 @@ class GrupoController extends Controller
 
     public function index()
     {
+        $this->assertCanViewModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId) {
             abort(403);
@@ -90,6 +92,7 @@ class GrupoController extends Controller
 
     public function create()
     {
+        $this->assertCanEditModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId) {
             abort(403);
@@ -100,6 +103,7 @@ class GrupoController extends Controller
 
     public function store(Request $request)
     {
+        $this->assertCanEditModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId) {
             abort(403);
@@ -161,6 +165,11 @@ class GrupoController extends Controller
 
     public function edit(Grupo $grupo)
     {
+        $this->assertCanViewModule('grupos');
+        $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
+        if (!$empresaId || (int) $grupo->empresa_id !== (int) $empresaId) {
+            abort(404);
+        }
         $grupo->loadCount('users');
         return response()->json($grupo->only(['id', 'name', 'description', 'leader_id', 'activo']) + [
             'users_count' => $grupo->users_count,
@@ -170,6 +179,7 @@ class GrupoController extends Controller
 
     public function update(Request $request, Grupo $grupo)
     {
+        $this->assertCanEditModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId || (int) $grupo->empresa_id !== (int) $empresaId) {
             abort(404);
@@ -235,6 +245,7 @@ class GrupoController extends Controller
 
     public function destroy(Grupo $grupo)
     {
+        $this->assertCanEditModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId || (int) $grupo->empresa_id !== (int) $empresaId) {
             abort(404);
@@ -252,9 +263,10 @@ class GrupoController extends Controller
                 $grupo->delete();
             });
         } catch (\Throwable $e) {
+            report($e);
             return response()->json([
                 'success' => false,
-                'message' => 'No se pudo eliminar el grupo: ' . $e->getMessage(),
+                'message' => 'No se pudo eliminar el grupo.',
             ], 422);
         }
 
@@ -266,6 +278,7 @@ class GrupoController extends Controller
 
     public function toggleStatus(Grupo $grupo)
     {
+        $this->assertCanEditModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId || (int) $grupo->empresa_id !== (int) $empresaId) {
             abort(404);
@@ -281,6 +294,7 @@ class GrupoController extends Controller
 
     public function showUsers(Grupo $grupo)
     {
+        $this->assertCanViewModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId || (int) $grupo->empresa_id !== (int) $empresaId) {
             abort(404);
@@ -291,6 +305,7 @@ class GrupoController extends Controller
 
     public function usersJson(Grupo $grupo)
     {
+        $this->assertCanViewModule('grupos');
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         if (!$empresaId || (int) $grupo->empresa_id !== (int) $empresaId) {
             abort(404);

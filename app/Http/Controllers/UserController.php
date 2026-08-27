@@ -262,6 +262,7 @@ class UserController extends Controller
 
     public function complete(Request $request)
     {
+        $this->authorize('viewAny', User::class);
         $q = trim((string) $request->query('q', ''));
         $status = (string) $request->query('status', 'all');
         $roleId = (string) $request->query('role_id', 'all');
@@ -415,7 +416,7 @@ class UserController extends Controller
             'gender' => 'nullable|in:hombre,mujer,otro',
             'gender_other' => 'nullable|string|max:255|required_if:gender,otro',
             'email' => 'required|email|unique:users,email',
-            'password' => ['required', 'confirmed', Password::defaults()],
+            'password' => ['required', 'confirmed', 'max:72', Password::defaults()],
             'document_type' => 'nullable|string|in:CC,CE,TI,PP',
             'document_number' => 'nullable|string|max:50',
             'birth_date' => 'nullable|date',
@@ -425,8 +426,8 @@ class UserController extends Controller
             'corporate_email' => 'nullable|email|required_if:has_corporate_email,1',
             'has_corporate_phone' => 'boolean',
             'corporate_phone' => 'nullable|string|max:20|required_if:has_corporate_phone,1',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
-            'signature' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+            'signature' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'role_id' => ['required', 'exists:roles,id', Rule::in($allowedRoleIds)],
             'cargo_id' => ['nullable', 'exists:cargos,id', Rule::in($allowedCargoIds)],
             'grupo_id' => ['nullable', 'exists:grupos,id', Rule::in($allowedGrupoIds)],
@@ -549,7 +550,7 @@ class UserController extends Controller
             'gender' => 'nullable|in:hombre,mujer,otro',
             'gender_other' => 'nullable|string|max:255|required_if:gender,otro',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'password' => ['nullable', 'confirmed', Password::defaults()],
+            'password' => ['nullable', 'confirmed', 'max:72', Password::defaults()],
             'document_type' => 'nullable|string|in:CC,CE,TI,PP',
             'document_number' => 'nullable|string|max:50',
             'birth_date' => 'nullable|date',
@@ -559,8 +560,8 @@ class UserController extends Controller
             'corporate_email' => 'nullable|email|required_if:has_corporate_email,1',
             'has_corporate_phone' => 'boolean',
             'corporate_phone' => 'nullable|string|max:20|required_if:has_corporate_phone,1',
-            'photo' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
-            'signature' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:4096',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
+            'signature' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:4096',
             'role_id' => ['required', 'exists:roles,id', Rule::in($allowedRoleIds)],
             'cargo_id' => ['nullable', 'exists:cargos,id', Rule::in($allowedCargoIds)],
             'grupo_id' => ['nullable', 'exists:grupos,id', Rule::in($allowedGrupoIds)],
