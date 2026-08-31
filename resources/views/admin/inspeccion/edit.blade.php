@@ -111,7 +111,7 @@
             </div>
             <div id="editableContainer" class="overflow-auto border border-gray-200 rounded-b-2xl p-4 bg-white" style="max-height: 65vh;">
                 <div id="editableTemplate" contenteditable="true" class="outline-none">
-                    {!! $inspeccion->edited_html !!}
+                    @safeHtml($inspeccion->edited_html)
                 </div>
             </div>
         </div>

@@ -34,8 +34,9 @@ class ProfileController extends Controller
             'gender_other' => 'nullable|string|max:255|required_if:gender,otro',
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', 'max:72', Password::defaults()],
+            'current_password' => ['required_with:password', 'current_password'],
             'document_type' => 'required|string|in:CC,CE,TI,PP',
-            'document_number' => 'required|string|max:50',
+            'document_number' => 'required|string|max:50|unique:users,document_number,' . $user->id,
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
             'has_corporate_email' => 'boolean',
@@ -71,6 +72,7 @@ class ProfileController extends Controller
         if ($request->filled('password')) {
             $user->password = $request->password;
             $user->must_change_password = false;
+            $request->session()->regenerate();
         }
 
         if ($request->hasFile('photo')) {

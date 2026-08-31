@@ -58,7 +58,11 @@ class EmpresaContext
 
         $id = session(self::SESSION_KEY);
         if ($id !== null) {
-            return self::$empresaActivaCache = Empresa::find($id);
+            $empresa = Empresa::find($id);
+            if ($empresa && self::usuarioPuedeAcceder($empresa)) {
+                return self::$empresaActivaCache = $empresa;
+            }
+            session()->forget(self::SESSION_KEY);
         }
         $user = auth()->user();
         if ($user?->empresa_id) {
@@ -71,6 +75,7 @@ class EmpresaContext
     /** Establece la empresa activa en sesión (Entrar a empresa). */
     public static function entrarEmpresa(Empresa $empresa): void
     {
+        abort_unless(self::usuarioPuedeAcceder($empresa), 403);
         session([self::SESSION_KEY => $empresa->id]);
         self::clearRequestCache();
     }
@@ -86,6 +91,24 @@ class EmpresaContext
     {
         self::$empresaActivaCache = null;
         self::$empresaActivaCacheLoaded = false;
+    }
+
+    public static function usuarioPuedeAcceder(?Empresa $empresa): bool
+    {
+        if (! $empresa) {
+            return false;
+        }
+
+        $user = auth()->user();
+        if (! $user) {
+            return false;
+        }
+
+        if (! $user->empresa_id) {
+            return true;
+        }
+
+        return (int) $user->empresa_id === (int) $empresa->id;
     }
 
     /** Prefijo para códigos (ej: APW, BVC). Por defecto APW si no hay. */

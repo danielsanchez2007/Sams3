@@ -2,8 +2,8 @@
 
 @section('content')
 @php
-    $logosCfg = $logosCfg ?? ['primario' => 'images/logo principal .png'];
-    $logoPrimario = $logosCfg['primario'] ?? 'images/logo principal .png';
+    $logosCfg = $logosCfg ?? ['primario' => 'images/logo-instituto.png'];
+    $logoPrimario = $logosCfg['primario'] ?? 'images/logo-instituto.png';
 @endphp
 
 <div class="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4">

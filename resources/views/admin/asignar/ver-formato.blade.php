@@ -22,7 +22,7 @@
                         @endif
                     </div>
                     <div id="editableTemplate" contenteditable="{{ $bloqueadoAdmin ? 'false' : 'true' }}" class="border border-gray-200 rounded-xl p-3 overflow-auto bg-white" style="max-height:70vh;">
-                        {!! $solicitud->html_formulario !!}
+                        @safeHtml($solicitud->html_formulario)
                     </div>
                 </div>
             </div>

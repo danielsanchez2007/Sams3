@@ -2,30 +2,29 @@
 
 @section('content')
 @php
-    $logosCfg = $logosCfg ?? ['primario' => 'images/logo principal .png'];
-    $logoPrimario = $logosCfg['primario'] ?? 'images/logo principal .png';
+    $logosCfg = $logosCfg ?? ['primario' => 'images/logo-instituto.png'];
+    $logoPrimario = $logosCfg['primario'] ?? 'images/logo-instituto.png';
+    $logoFallback = 'images/logo-principal.png';
 @endphp
 
 <div class="min-h-screen bg-slate-50 flex items-center justify-center py-12 px-4">
     <div class="max-w-md w-full">
-        
-        <!-- Botón Volver -->
+
         <div class="mb-8 flex justify-center">
-            <a href="{{ route('sistema.info') }}" 
+            <a href="{{ route('sistema.info') }}"
                 class="inline-flex items-center gap-2 text-slate-500 hover:text-slate-700 transition-colors text-sm font-medium">
                 <i data-lucide="arrow-left" class="w-4 h-4"></i>
                 <span>Volver a información del sistema</span>
             </a>
         </div>
 
-        <!-- Card Principal -->
         <div class="bg-white rounded-3xl shadow-xl border border-slate-100 p-10">
-            
-            <!-- Logo -->
+
             <div class="flex justify-center mb-10">
-                <img src="{{ asset($logoPrimario) }}" 
-                     alt="Prevention World" 
-                     class="h-28 w-auto drop-shadow-md">
+                <img src="{{ asset($logoPrimario) }}"
+                     alt="Prevention World"
+                     class="h-28 w-auto drop-shadow-md"
+                     onerror="this.onerror=null;this.src='{{ asset($logoFallback) }}';">
             </div>
 
             <div class="text-center mb-9">
@@ -33,7 +32,7 @@
                 <p class="text-slate-500 mt-2">Bienvenido a Prevention World</p>
             </div>
 
-            <form class="space-y-6" action="{{ route('login') }}" method="POST">
+            <form id="login-form" class="space-y-6" action="{{ url()->current() }}" method="POST">
                 @csrf
 
                 @if (session('success'))
@@ -60,20 +59,20 @@
 
                 <div class="space-y-5">
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-2 tracking-wider">CORREO ELECTRÓNICO</label>
-                        <input id="email" name="email" type="email" autocomplete="email" required value="{{ old('email') }}"
+                        <label for="email" class="block text-xs font-semibold text-slate-600 mb-2 tracking-wider">CORREO ELECTRÓNICO</label>
+                        <input id="email" name="email" type="email" autocomplete="username" required value="{{ old('email') }}"
                             class="w-full bg-white border border-slate-300 rounded-2xl px-5 py-3.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-200 transition-all">
                     </div>
 
                     <div>
-                        <label class="block text-xs font-semibold text-slate-600 mb-2 tracking-wider">CONTRASEÑA</label>
+                        <label for="password" class="block text-xs font-semibold text-slate-600 mb-2 tracking-wider">CONTRASEÑA</label>
                         <input id="password" name="password" type="password" autocomplete="current-password" required
                             class="w-full bg-white border border-slate-300 rounded-2xl px-5 py-3.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-200 transition-all">
                     </div>
                 </div>
 
-                <button type="submit"
-                    class="w-full py-4 px-6 bg-[#003087] hover:bg-[#00246b] text-white font-semibold rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg">
+                <button id="login-submit" type="submit"
+                    class="w-full py-4 px-6 bg-[#003087] hover:bg-[#00246b] text-white font-semibold rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-wait">
                     <i data-lucide="log-in" class="w-5 h-5"></i>
                     <span>INICIAR SESIÓN</span>
                 </button>
@@ -88,4 +87,23 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        const form = document.getElementById('login-form');
+        const btn = document.getElementById('login-submit');
+        if (!form || !btn) return;
+
+        form.addEventListener('submit', function (event) {
+            if (btn.dataset.loading === '1') {
+                event.preventDefault();
+                return;
+            }
+            btn.dataset.loading = '1';
+            btn.disabled = true;
+            const label = btn.querySelector('span');
+            if (label) label.textContent = 'INGRESANDO…';
+        });
+    })();
+</script>
 @endsection

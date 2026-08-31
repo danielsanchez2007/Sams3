@@ -248,7 +248,7 @@ class InspeccionController extends Controller
         ]);
 
         $wrapped = $this->buildPdfHtml($inspeccion);
-        $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])->loadHTML($wrapped)->setPaper('a4');
+        $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => false])->loadHTML($wrapped)->setPaper('a4');
         $out = $pdf->output();
         $filename = 'inspeccion/pdf/' . $equipo->id . '-' . $inspeccion->id . '-' . now()->format('YmdHis') . '.pdf';
         Storage::disk('public')->makeDirectory('inspeccion/pdf');
@@ -305,7 +305,7 @@ class InspeccionController extends Controller
         ]);
 
         $wrapped = $this->buildPdfHtml($inspeccion);
-        $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => true])->loadHTML($wrapped)->setPaper('a4');
+        $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => false])->loadHTML($wrapped)->setPaper('a4');
         $out = $pdf->output();
         $filename = 'inspeccion/pdf/' . $equipo->id . '-' . $inspeccion->id . '-' . now()->format('YmdHis') . '.pdf';
         Storage::disk('public')->makeDirectory('inspeccion/pdf');
@@ -509,22 +509,7 @@ class InspeccionController extends Controller
 
     private function storagePathToDataUri(string $relativePath): ?string
     {
-        if (!Storage::disk('public')->exists($relativePath)) {
-            return null;
-        }
-        $abs = Storage::disk('public')->path($relativePath);
-        $data = @file_get_contents($abs);
-        if ($data === false) {
-            return null;
-        }
-        $ext = strtolower(pathinfo($relativePath, PATHINFO_EXTENSION));
-        $mime = match ($ext) {
-            'png' => 'image/png',
-            'gif' => 'image/gif',
-            'webp' => 'image/webp',
-            default => 'image/jpeg',
-        };
-        return 'data:' . $mime . ';base64,' . base64_encode($data);
+        return \App\Support\SafeStoragePath::toDataUri($relativePath);
     }
 
     private function wrapHtmlForPdf(string $body, string $extraStyles = '', ?EquipoInspeccion $inspeccion = null, bool $forPdf = true): string

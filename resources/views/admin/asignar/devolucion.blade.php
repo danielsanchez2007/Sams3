@@ -15,7 +15,7 @@
             <div class="lg:col-span-8">
                 <div class="pw-card rounded-2xl border border-gray-100 p-4">
                     <p class="text-lg font-semibold mb-2">Formato de devolución</p>
-                    <div id="editableTemplate" contenteditable="true" class="border border-gray-200 rounded-xl p-3 overflow-auto" style="max-height:70vh;">{!! $renderedHtml !!}</div>
+                    <div id="editableTemplate" contenteditable="true" class="border border-gray-200 rounded-xl p-3 overflow-auto" style="max-height:70vh;">@safeHtml($renderedHtml)</div>
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Firma administrador (arrastra y suelta)</label>
                         <div id="dropFirmaAdmin" class="min-h-[90px] border-2 border-dashed border-cyan-400 rounded-xl bg-cyan-50 flex items-center justify-center text-cyan-700">

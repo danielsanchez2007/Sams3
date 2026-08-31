@@ -418,7 +418,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email',
             'password' => ['required', 'confirmed', 'max:72', Password::defaults()],
             'document_type' => 'nullable|string|in:CC,CE,TI,PP',
-            'document_number' => 'nullable|string|max:50',
+            'document_number' => ['nullable', 'string', 'max:50', Rule::unique('users', 'document_number')],
             'birth_date' => 'nullable|date',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
@@ -457,7 +457,7 @@ class UserController extends Controller
             }
         }
 
-        $user = User::create([
+        $user = User::createAccount([
             'codigo' => $empresaId ? $this->nextCodigoForEmpresa($empresaId) : null,
             'name' => $request->name,
             'last_name' => $request->last_name,
@@ -552,7 +552,7 @@ class UserController extends Controller
             'email' => 'required|email|unique:users,email,' . $user->id,
             'password' => ['nullable', 'confirmed', 'max:72', Password::defaults()],
             'document_type' => 'nullable|string|in:CC,CE,TI,PP',
-            'document_number' => 'nullable|string|max:50',
+            'document_number' => ['nullable', 'string', 'max:50', Rule::unique('users', 'document_number')->ignore($user->id)],
             'birth_date' => 'nullable|date',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string|max:255',
@@ -571,7 +571,7 @@ class UserController extends Controller
         $hasCorporateEmail = $request->boolean('has_corporate_email', false);
         $hasCorporatePhone = $request->boolean('has_corporate_phone', false);
 
-        $user->update([
+        $user->fillAccount([
             'name' => $request->name,
             'last_name' => $request->last_name,
             'gender' => $request->gender,
@@ -591,13 +591,15 @@ class UserController extends Controller
             'grupo_id' => $request->grupo_id,
             'active' => $request->boolean('active', true)
         ]);
+        $user->save();
 
         // Actualizar contraseña solo si se proporciona (otro usuario => debe redefinirla al entrar; uno mismo => no)
         if ($request->password) {
-            $user->update([
+            $user->fillAccount([
                 'password' => $request->password,
                 'must_change_password' => (int) $user->id !== (int) auth()->id(),
             ]);
+            $user->save();
         }
 
         if ($request->hasFile('photo')) {
@@ -644,7 +646,7 @@ class UserController extends Controller
             return back()->with('error', 'No puedes desactivar tu propio usuario.');
         }
 
-        $user->update(['active' => !$user->active]);
+        $user->forceFill(['active' => ! $user->active])->save();
 
         $status = $user->active ? 'activado' : 'desactivado';
         return response()->json([
@@ -661,10 +663,11 @@ class UserController extends Controller
         }
         $this->assertUserInCurrentEmpresa($user);
         $newPassword = Str::password(16);
-        $user->update([
+        $user->fillAccount([
             'password' => $newPassword,
             'must_change_password' => true,
         ]);
+        $user->save();
 
         return response()->json([
             'success' => true,
@@ -845,11 +848,12 @@ class UserController extends Controller
             'role_id' => ['required', 'exists:roles,id', Rule::in($allowedRoleIds)],
         ]);
 
-        $user->update([
+        $user->fillAccount([
             'role_id' => (int) $data['role_id'],
             'active' => true,
             'must_change_password' => true,
         ]);
+        $user->save();
 
         return response()->json([
             'success' => true,

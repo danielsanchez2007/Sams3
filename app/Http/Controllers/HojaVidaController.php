@@ -1297,21 +1297,7 @@ class HojaVidaController extends Controller
 
     private function storagePathToDataUri(string $path): ?string
     {
-        // $path es relativo al disco "public", por ejemplo: "equipos/imagenes/xyz.jpg"
-        $relative = ltrim($path, '/');
-        if (!Storage::disk('public')->exists($relative)) {
-            return null;
-        }
-
-        $abs = Storage::disk('public')->path($relative);
-        if (!is_file($abs) || !is_readable($abs)) {
-            return null;
-        }
-
-        $mime = mime_content_type($abs) ?: 'image/jpeg';
-        $data = base64_encode((string) file_get_contents($abs));
-
-        return 'data:' . $mime . ';base64,' . $data;
+        return \App\Support\SafeStoragePath::toDataUri($path);
     }
 
     private function convertStorageImagesForPdf(string $html): string

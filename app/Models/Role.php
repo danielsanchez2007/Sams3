@@ -14,6 +14,9 @@ class Role extends Model
         'description',
         'active',
         'activo',
+    ];
+
+    protected $hidden = [
         'permissions',
     ];
 

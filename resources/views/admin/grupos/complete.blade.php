@@ -435,6 +435,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function viewGrupoUsers(id) {
+    const pwEscapeHtml = window.pwEscapeHtml || function (value) {
+        return String(value == null ? '' : value).replace(/[&<>"'`]/g, function (ch) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' })[ch];
+        });
+    };
     showViewGrupoUsersModal();
     document.getElementById('viewGrupoUsersList').innerHTML = '';
     document.getElementById('viewGrupoLeaderContainer').innerHTML = '';
@@ -467,7 +472,7 @@ function viewGrupoUsers(id) {
                             ${leaderPhoto ? `<img src="${leaderPhoto}" class="w-10 h-10 object-cover" />` : `<span class="text-gray-700 font-semibold">${(leader.name || 'L').substring(0,1)}</span>`}
                         </div>
                         <div class="ml-3">
-                            <div class="text-sm font-semibold text-gray-900">${leader.name ?? ''} ${leader.last_name ?? ''}</div>
+                            <div class="text-sm font-semibold text-gray-900">${pwEscapeHtml(leader.name ?? '')} ${pwEscapeHtml(leader.last_name ?? '')}</div>
                             <div class="text-xs text-gray-600">Líder del grupo</div>
                         </div>
                     </div>
@@ -490,7 +495,7 @@ function viewGrupoUsers(id) {
                                 ${photo ? `<img src="${photo}" class="w-9 h-9 object-cover" />` : `<span class="text-gray-700 font-semibold">${(u.name || 'U').substring(0,1)}</span>`}
                             </div>
                             <div class="ml-3">
-                                <div class="text-sm font-medium text-gray-900">${u.name ?? ''} ${u.last_name ?? ''}</div>
+                                <div class="text-sm font-medium text-gray-900">${pwEscapeHtml(u.name ?? '')} ${pwEscapeHtml(u.last_name ?? '')}</div>
                             </div>
                         </div>
                         ${u.is_leader ? `<span class="text-xs px-2 py-1 rounded-full bg-yellow-100 text-yellow-800">Líder</span>` : ''}

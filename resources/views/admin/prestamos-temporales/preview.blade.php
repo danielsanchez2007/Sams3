@@ -28,7 +28,7 @@
                     </div>
                     <div class="p-4 overflow-auto bg-white" style="max-height:70vh;">
                         <div id="editableTemplate" contenteditable="true" class="outline-none">
-                            {!! $renderedHtml !!}
+                            @safeHtml($renderedHtml)
                         </div>
                     </div>
                 </div>

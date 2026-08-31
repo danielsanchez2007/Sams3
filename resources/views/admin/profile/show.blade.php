@@ -233,8 +233,13 @@
                 <i data-lucide="lock" class="w-5 h-5"></i>
                 Cambiar contraseña
             </h3>
-            <p class="text-sm text-gray-600 mb-4">Deja en blanco si no quieres cambiar la contraseña.</p>
+            <p class="text-sm text-gray-600 mb-4">Para cambiarla, confirma tu contraseña actual. Deja en blanco la nueva si no quieres modificarla.</p>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="md:col-span-2">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña actual</label>
+                    <input type="password" name="current_password" class="pw-input w-full" autocomplete="current-password">
+                    @error('current_password')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
                     <input type="password" name="password" class="pw-input w-full" autocomplete="new-password" placeholder="Mínimo 8 caracteres">

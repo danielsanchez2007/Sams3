@@ -71,7 +71,11 @@ class UserPolicy
 
     public function view(User $actor, User $target): bool
     {
-        return $this->userInCurrentEmpresa($actor, $target);
+        if ((int) $actor->id === (int) $target->id) {
+            return true;
+        }
+
+        return $this->canViewUsersModule($actor) && $this->userInCurrentEmpresa($actor, $target);
     }
 
     public function create(User $actor): bool

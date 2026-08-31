@@ -13,6 +13,26 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->trustProxies(
+            at: '*',
+            headers: Request::HEADER_X_FORWARDED_FOR
+                | Request::HEADER_X_FORWARDED_HOST
+                | Request::HEADER_X_FORWARDED_PORT
+                | Request::HEADER_X_FORWARDED_PROTO
+                | Request::HEADER_X_FORWARDED_AWS_ELB
+        );
+        $middleware->redirectGuestsTo(fn () => route('login'));
+        $middleware->redirectUsersTo(function () {
+            $user = auth()->user();
+            if ($user?->must_change_password) {
+                return route('password.secure.show');
+            }
+            if ($user && ! $user->isProfileComplete()) {
+                return route('profile.show');
+            }
+
+            return route('admin.dashboard');
+        });
         $middleware->appendToGroup('web', [
             \App\Http\Middleware\PreventAuthPageCache::class,
             \App\Http\Middleware\SecurityHeaders::class,
@@ -31,12 +51,23 @@ return Application::configure(basePath: dirname(__DIR__))
             }
 
             if ($request->user()) {
-                return redirect()->route('admin.dashboard')
+                $user = $request->user();
+                $dest = $user->must_change_password
+                    ? 'password.secure.show'
+                    : ($user->isProfileComplete() ? 'admin.dashboard' : 'profile.show');
+
+                return redirect()->route($dest)
                     ->with('warning', 'Por seguridad la sesión de la página expiró. Continúa desde aquí.');
             }
 
-            return redirect()->route('login')
-                ->with('warning', 'La sesión de seguridad expiró. Vuelve a iniciar sesión.');
+            $loginRedirect = redirect()->route('login')
+                ->with('warning', 'La sesión de seguridad expiró. Vuelve a escribir tu contraseña e intenta de nuevo.');
+
+            if ($request->isMethod('POST') && ($request->routeIs('login') || $request->is('login'))) {
+                $loginRedirect->withInput($request->only('email'));
+            }
+
+            return $loginRedirect;
         });
 
         $exceptions->shouldRenderJsonWhen(function (Request $request) {

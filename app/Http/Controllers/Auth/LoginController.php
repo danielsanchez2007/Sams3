@@ -4,157 +4,35 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Empresa;
+use App\Models\User;
 use App\Services\EmpresaContext;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Auth\AuthenticatesUsers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class LoginController extends Controller
 {
-    /*
-    |--------------------------------------------------------------------------
-    | Login Controller
-    |--------------------------------------------------------------------------
-    |
-    | This controller handles authenticating users for the application and
-    | redirecting them to your home screen. The controller uses a trait
-    | to conveniently provide its functionality to your applications.
-    |
-    */
-
     use AuthenticatesUsers;
 
-    private function empresaByUserOrRole(\App\Models\User $user): ?Empresa
-    {
-        if ($user->empresa_id) {
-            return Empresa::find($user->empresa_id);
-        }
-
-        $roleName = strtoupper((string) ($user->role?->name ?? ''));
-        if ($roleName === '' || !str_contains($roleName, '-')) {
-            return null;
-        }
-        $pref = strtok($roleName, '-');
-        if (!$pref) {
-            return null;
-        }
-
-        return Empresa::query()->whereRaw('UPPER(prefijo) = ?', [$pref])->first();
-    }
-
     /**
-     * Where to redirect users after login.
-     *
-     * @var string
+     * Hash bcrypt fijo solo para igualar tiempos cuando el correo no existe.
      */
+    private const DUMMY_PASSWORD_HASH = '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi';
+
     protected $redirectTo = '/admin';
 
-    /**
-     * Create a new controller instance.
-     *
-     * @return void
-     */
     public function __construct()
     {
         $this->middleware('guest')->except('logout');
         $this->middleware('auth')->only('logout');
     }
 
-    /**
-     * Handle a login request to the application.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\RedirectResponse|\Illuminate\Http\Response|\Illuminate\Http\JsonResponse
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
-    public function login(Request $request)
-    {
-        $this->validateLogin($request);
-
-        // If the class is using the ThrottlesLogins trait, we can automatically throttle
-        // the login attempts for this application. We'll key this by the username and
-        // the IP address of the client making these requests into this application.
-        if (method_exists($this, 'hasTooManyLoginAttempts') &&
-            $this->hasTooManyLoginAttempts($request)) {
-            $this->fireLockoutEvent($request);
-
-            return $this->sendLockoutResponse($request);
-        }
-
-        // Get user by email
-        $email = mb_strtolower(trim((string) $request->email));
-        try {
-            $user = \App\Models\User::query()->whereRaw('LOWER(email) = ?', [$email])->first();
-        } catch (QueryException $e) {
-            $raw = $e->getMessage() . ' ' . (string) $e->getPrevious()?->getMessage();
-            if (str_contains($raw, '2002') || str_contains($raw, 'denegó') || str_contains($raw, 'refused')) {
-                $message = config('app.debug')
-                    ? 'No se puede conectar a la base de datos. Inicia MySQL en Laragon (Start All) y verifica DB_HOST, DB_PORT y DB_DATABASE en .env.'
-                    : 'No se pudo iniciar sesión. Intenta de nuevo más tarde.';
-
-                return back()
-                    ->withErrors(['email' => $message])
-                    ->withInput($request->only('email'));
-            }
-            throw $e;
-        }
-
-        if ($user && Hash::check($request->password, $user->password)) {
-            if (!$user->active) {
-                return back()
-                    ->withErrors(['email' => 'Tu cuenta está pendiente de aprobación por un administrador.'])
-                    ->withInput($request->only('email'));
-            }
-            if (!$user->role_id) {
-                return back()
-                    ->withErrors(['email' => 'Tu cuenta aún no tiene rol asignado. Contacta al administrador.'])
-                    ->withInput($request->only('email'));
-            }
-            // Password is correct, log in the user
-            Auth::login($user, $request->filled('remember'));
-            $request->session()->regenerate();
-            $this->clearLoginAttempts($request);
-
-            $empresa = $this->empresaByUserOrRole($user);
-            if ($empresa) {
-                // Corrige usuarios creados sin empresa_id aunque su rol sí sea de empresa.
-                if (!$user->empresa_id) {
-                    $user->empresa_id = $empresa->id;
-                    $user->save();
-                }
-                EmpresaContext::entrarEmpresa($empresa);
-            } else {
-                // Admin global: por defecto entra al contexto "Prevention World" (o la primera empresa),
-                // para evitar pantallas 403 por "No hay una empresa activa".
-                $pw = EmpresaContext::preventionWorld();
-                $fallback = $pw ?: Empresa::query()->orderBy('id')->first();
-                if ($fallback) {
-                    EmpresaContext::entrarEmpresa($fallback);
-                } else {
-                    EmpresaContext::salirEmpresa();
-                }
-            }
-            
-            return redirect()->intended($this->redirectPath());
-        }
-
-        // If the login attempt was unsuccessful we will increment the number of attempts
-        // to login and redirect the user back to the login form. Of course, when this
-        // user surpasses their maximum number of attempts they will get locked out.
-        $this->incrementLoginAttempts($request);
-
-        return $this->sendFailedLoginResponse($request);
-    }
-
-    /**
-     * Get the login username to be used by the controller.
-     *
-     * @return string
-     */
     public function username()
     {
         return 'email';
@@ -172,6 +50,155 @@ class LoginController extends Controller
 
     protected function throttleKey(Request $request)
     {
-        return Str::lower($request->input($this->username())) . '|' . $request->ip();
+        return Str::lower(trim((string) $request->input($this->username()))).'|'.$request->ip();
+    }
+
+    public function login(Request $request)
+    {
+        $this->validateLogin($request);
+
+        if (method_exists($this, 'hasTooManyLoginAttempts') &&
+            $this->hasTooManyLoginAttempts($request)) {
+            $this->fireLockoutEvent($request);
+
+            return $this->sendLockoutResponse($request);
+        }
+
+        $email = mb_strtolower(trim((string) $request->email));
+
+        try {
+            $user = User::query()->with('role')->whereRaw('LOWER(email) = ?', [$email])->first();
+            $passwordOk = Hash::check(
+                (string) $request->password,
+                $user?->getAuthPassword() ?: self::DUMMY_PASSWORD_HASH
+            );
+
+            if ($user && $passwordOk) {
+                if (! $user->active) {
+                    return back()
+                        ->withErrors(['email' => 'Tu cuenta está pendiente de aprobación por un administrador.'])
+                        ->withInput($request->only('email'));
+                }
+                if (! $user->role_id) {
+                    return back()
+                        ->withErrors(['email' => 'Tu cuenta aún no tiene rol asignado. Contacta al administrador.'])
+                        ->withInput($request->only('email'));
+                }
+
+                Auth::login($user, $request->boolean('remember'));
+                $request->session()->regenerate();
+                $this->clearLoginAttempts($request);
+                $this->establishEmpresaContext($user);
+                $request->session()->forget('url.intended');
+
+                return redirect()->to($this->pathAfterLogin($user));
+            }
+
+            $this->incrementLoginAttempts($request);
+
+            return $this->sendFailedLoginResponse($request);
+        } catch (QueryException $e) {
+            $raw = $e->getMessage().' '.(string) $e->getPrevious()?->getMessage();
+            if (str_contains($raw, '2002') || str_contains($raw, 'denegó') || str_contains($raw, 'refused')) {
+                $message = config('app.debug')
+                    ? 'No se puede conectar a la base de datos. Inicia MySQL en Laragon (Start All) y verifica DB_HOST, DB_PORT y DB_DATABASE en .env.'
+                    : 'No se pudo iniciar sesión. Intenta de nuevo más tarde.';
+
+                return back()
+                    ->withErrors(['email' => $message])
+                    ->withInput($request->only('email'));
+            }
+            Log::error('Login query failed', ['exception' => $e->getMessage()]);
+
+            return back()
+                ->withErrors(['email' => 'No se pudo iniciar sesión. Intenta de nuevo.'])
+                ->withInput($request->only('email'));
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (Throwable $e) {
+            Log::error('Login unexpected error', ['exception' => $e->getMessage()]);
+
+            return back()
+                ->withErrors(['email' => 'No se pudo iniciar sesión. Actualiza la página e inténtalo de nuevo.'])
+                ->withInput($request->only('email'));
+        }
+    }
+
+    public function logout(Request $request)
+    {
+        $this->guard()->logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('sistema.info');
+    }
+
+    protected function sendFailedLoginResponse(Request $request)
+    {
+        throw ValidationException::withMessages([
+            $this->username() => ['Estas credenciales no coinciden con nuestros registros.'],
+        ]);
+    }
+
+    protected function sendLockoutResponse(Request $request)
+    {
+        $seconds = $this->limiter()->availableIn($this->throttleKey($request));
+
+        throw ValidationException::withMessages([
+            $this->username() => [
+                'Demasiados intentos. Espera '.$seconds.' segundos e inténtalo de nuevo.',
+            ],
+        ])->status(429);
+    }
+
+    private function establishEmpresaContext(User $user): void
+    {
+        $empresa = $this->empresaByUserOrRole($user);
+        if ($empresa) {
+            if (! $user->empresa_id) {
+                $user->empresa_id = $empresa->id;
+                $user->save();
+            }
+            EmpresaContext::entrarEmpresa($empresa);
+
+            return;
+        }
+
+        $fallback = EmpresaContext::preventionWorld() ?: Empresa::query()->orderBy('id')->first();
+        if ($fallback) {
+            EmpresaContext::entrarEmpresa($fallback);
+        } else {
+            EmpresaContext::salirEmpresa();
+        }
+    }
+
+    private function pathAfterLogin(User $user): string
+    {
+        if ($user->must_change_password) {
+            return route('password.secure.show');
+        }
+        if (! $user->isProfileComplete()) {
+            return route('profile.show');
+        }
+
+        return route('admin.dashboard');
+    }
+
+    private function empresaByUserOrRole(User $user): ?Empresa
+    {
+        if ($user->empresa_id) {
+            return Empresa::find($user->empresa_id);
+        }
+
+        $roleName = strtoupper((string) ($user->role?->name ?? ''));
+        if ($roleName === '' || ! str_contains($roleName, '-')) {
+            return null;
+        }
+        $pref = strtok($roleName, '-');
+        if (! $pref) {
+            return null;
+        }
+
+        return Empresa::query()->whereRaw('UPPER(prefijo) = ?', [$pref])->first();
     }
 }

@@ -114,11 +114,12 @@ class HtmlSanitizer
                     continue;
                 }
 
-                if (in_array($name, ['href', 'src', 'action', 'formaction', 'xlink:href', 'srcdoc'], true)) {
+                if (in_array($name, ['href', 'src', 'action', 'formaction', 'xlink:href', 'srcdoc', 'srcset'], true)) {
                     if (
                         str_starts_with($valueLower, 'javascript:')
                         || str_starts_with($valueLower, 'vbscript:')
                         || str_starts_with($valueLower, 'data:text/html')
+                        || (str_starts_with($valueLower, 'data:') && ! str_starts_with($valueLower, 'data:image/'))
                     ) {
                         $toRemove[] = $attr->name;
                     }

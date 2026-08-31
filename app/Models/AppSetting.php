@@ -15,6 +15,10 @@ class AppSetting extends Model
         'value',
     ];
 
+    protected $hidden = [
+        'value',
+    ];
+
     public static function getJson(string $key, array $default = []): array
     {
         $raw = static::getValue($key);

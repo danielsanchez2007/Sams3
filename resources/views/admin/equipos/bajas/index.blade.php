@@ -526,7 +526,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 renderThumbs(thumb, e.img_general, e.img_etiqueta);
                 const info = document.createElement('div');
                 info.className = 'min-w-0 flex-1';
-                info.innerHTML = '<div class="text-sm font-semibold text-gray-900 truncate">' + (e.codigo || '') + ' - ' + (e.nombre || '') + '</div><div class="text-xs text-gray-500 truncate">' + (e.serial ? 'Serial: ' + e.serial : '') + '</div>';
+                const title = document.createElement('div');
+                title.className = 'text-sm font-semibold text-gray-900 truncate';
+                title.textContent = (e.codigo || '') + ' - ' + (e.nombre || '');
+                const sub = document.createElement('div');
+                sub.className = 'text-xs text-gray-500 truncate';
+                sub.textContent = e.serial ? ('Serial: ' + e.serial) : '';
+                info.appendChild(title);
+                info.appendChild(sub);
                 btn.appendChild(thumb);
                 btn.appendChild(info);
                 btn.addEventListener('click', function() {

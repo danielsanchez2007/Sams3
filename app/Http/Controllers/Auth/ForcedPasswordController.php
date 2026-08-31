@@ -39,6 +39,8 @@ class ForcedPasswordController extends Controller
             'must_change_password' => false,
         ])->save();
 
+        $request->session()->regenerate();
+
         return redirect()
             ->intended(route('admin.dashboard'))
             ->with('success', 'Contraseña segura guardada. Ya puedes usar el sistema.');

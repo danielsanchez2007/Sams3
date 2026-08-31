@@ -24,7 +24,7 @@
                     <p class="text-lg font-semibold mb-2">Formulario recibido</p>
                     <p class="text-xs text-gray-500 mb-2">Puedes terminar de diligenciar este formato antes de aceptarlo.</p>
                     <div id="editableTemplate" contenteditable="true" class="border border-gray-200 rounded-xl p-3 overflow-auto bg-white" style="max-height:70vh;">
-                        {!! $solicitud->html_formulario !!}
+                        @safeHtml($solicitud->html_formulario)
                     </div>
                     <div class="mt-4">
                         <label class="block text-sm font-medium text-gray-700 mb-2">Campo de firma (arrastra tu firma aquí)</label>

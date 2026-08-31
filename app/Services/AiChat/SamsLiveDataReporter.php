@@ -430,7 +430,7 @@ final class SamsLiveDataReporter
             ->orderByDesc('total')
             ->get();
 
-        $sample = (clone $q)->select(['id', 'name', 'last_name', 'email', 'document_number', 'active'])->limit(10)->get();
+        $sample = (clone $q)->select(['id', 'active'])->limit(10)->get();
 
         $ids = $byEmpresa->pluck('empresa_id')->filter()->unique()->values();
         $nombres = [];
@@ -462,11 +462,8 @@ final class SamsLiveDataReporter
         if ($sample->isNotEmpty()) {
             $out .= "\n- **Coincidencias (hasta 10):**\n";
             foreach ($sample as $u) {
-                $nombre = trim((string) (($u->name ?? '') . ' ' . ($u->last_name ?? '')));
-                $out .= '- ' . ($nombre !== '' ? $nombre : ('Usuario #' . $u->id))
-                    . ' | cédula: ' . ($u->document_number ?: 'N/D')
-                    . ' | ' . ($u->active ? 'activo' : 'inactivo')
-                    . ' | ' . ($u->email ?: 'sin correo') . "\n";
+                $out .= '- Usuario #' . $u->id
+                    . ' | ' . ($u->active ? 'activo' : 'inactivo') . "\n";
             }
         }
 

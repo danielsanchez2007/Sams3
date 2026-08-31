@@ -67,7 +67,7 @@
             <style>{{ $docCss }}</style>
             <style>.doc-editable.borrador-activo tr:hover,.doc-editable.borrador-activo p:hover{background:rgba(251,191,36,0.3);outline:1px dashed #f59e0b;}</style>
             <div id="editableDoc" contenteditable="true" class="outline-none min-h-[400px] doc-editable" style="font-size: 10px;">
-                {!! $previewBody !!}
+                @safeHtml($previewBody)
             </div>
         </div>
     </div>

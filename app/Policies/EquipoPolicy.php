@@ -88,9 +88,9 @@ class EquipoPolicy
 
     private function inTenant(Equipo $equipo): bool
     {
-        $activa = EmpresaContext::empresaId();
-        if (!$activa) {
-            return true;
+        $activa = EmpresaContext::empresaId() ?? auth()->user()?->empresa_id;
+        if (! $activa) {
+            return false;
         }
 
         return $equipo->empresa_id === null || (int) $equipo->empresa_id === (int) $activa;

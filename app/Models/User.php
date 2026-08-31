@@ -24,7 +24,6 @@ class User extends Authenticatable
         'gender',
         'gender_other',
         'email',
-        'password',
         'document_type',
         'document_number',
         'phone',
@@ -36,13 +35,35 @@ class User extends Authenticatable
         'birth_date',
         'photo',
         'signature',
-        'role_id',
         'cargo_id',
         'grupo_id',
-        'empresa_id',
-        'active',
-        'must_change_password',
     ];
+
+    /**
+     * @return list<string>
+     */
+    public static function privilegedAttributeKeys(): array
+    {
+        return ['password', 'role_id', 'empresa_id', 'active', 'must_change_password'];
+    }
+
+    public static function createAccount(array $attributes): self
+    {
+        $user = new self();
+        $user->fillAccount($attributes);
+        $user->save();
+
+        return $user;
+    }
+
+    public function fillAccount(array $attributes): self
+    {
+        $privileged = self::privilegedAttributeKeys();
+        $this->fill(\Illuminate\Support\Arr::except($attributes, $privileged));
+        $this->forceFill(\Illuminate\Support\Arr::only($attributes, $privileged));
+
+        return $this;
+    }
 
     /**
      * The attributes that should be hidden for serialization.

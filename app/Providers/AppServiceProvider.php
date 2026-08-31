@@ -7,6 +7,7 @@ use App\Models\Equipo;
 use App\Models\User;
 use App\Policies\EquipoPolicy;
 use App\Policies\UserPolicy;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\URL;
@@ -34,6 +35,10 @@ class AppServiceProvider extends ServiceProvider
             return Password::min(10)->mixedCase()->numbers();
         });
 
+        Blade::directive('safeHtml', function ($expression) {
+            return "<?php echo \\App\\Support\\HtmlSanitizer::sanitizeTemplateHtml((string) ({$expression})); ?>";
+        });
+
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Equipo::class, EquipoPolicy::class);
 
@@ -53,14 +58,21 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
-        // Con Laragon bajo /public, forzar la raíz real del request
-        // para que route()/url() no apunten a /equipos sin el prefijo.
+        // Usar el origen real del request (incluye /public si aplica) para que
+        // el formulario de login no publique a otro host o sin el prefijo.
         if (!$this->app->runningInConsole()) {
             $this->app->booted(function () {
                 try {
                     $request = request();
-                    if ($request) {
-                        URL::forceRootUrl($request->root());
+                    if (! $request) {
+                        return;
+                    }
+                    $root = rtrim($request->getSchemeAndHttpHost().$request->getBasePath(), '/');
+                    if ($root !== '') {
+                        URL::forceRootUrl($root);
+                    }
+                    if ($request->isSecure()) {
+                        URL::forceScheme('https');
                     }
                 } catch (\Throwable $e) {
                     // ignore

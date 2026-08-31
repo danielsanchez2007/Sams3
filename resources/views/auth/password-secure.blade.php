@@ -9,9 +9,10 @@
             
             <!-- Logo -->
             <div class="flex justify-center mb-8">
-                <img src="{{ asset($logoPrimario ?? 'images/logo principal .png') }}" 
-                     alt="Prevention World" 
-                     class="h-24 w-auto drop-shadow-md">
+                <img src="{{ asset($logoPrimario ?? 'images/logo-instituto.png') }}"
+                     alt="Prevention World"
+                     class="h-24 w-auto drop-shadow-md"
+                     onerror="this.onerror=null;this.src='{{ asset('images/logo-principal.png') }}';">
             </div>
 
             <div class="text-center mb-8">

@@ -8,6 +8,12 @@
         };
     })();
 
+    window.pwEscapeHtml = function (value) {
+        return String(value == null ? '' : value).replace(/[&<>"'`]/g, function (ch) {
+            return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;', '`': '&#96;' })[ch];
+        });
+    };
+
     // --- Notificaciones (éxito, error, aviso) ---
     function showNotification(message, type) {
         type = type || 'success';

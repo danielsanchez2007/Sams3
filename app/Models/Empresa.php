@@ -13,7 +13,6 @@ class Empresa extends Model
         'nombre',
         'prefijo',
         'color_primario',
-        'modulos',
         'default_role_id',
         'default_user_id',
         'pais',
@@ -37,8 +36,12 @@ class Empresa extends Model
         'color_secundario_2',
         'color_extra_4',
         'color_extra_5',
-        'code_settings',
         'activo',
+    ];
+
+    protected $hidden = [
+        'modulos',
+        'code_settings',
     ];
 
     protected $casts = [

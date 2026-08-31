@@ -15,11 +15,11 @@ class PreventAuthPageCache
     {
         $response = $next($request);
 
-        $path = $request->path();
-        $isAuthGuestPage = in_array($path, ['login', 'register'], true)
-            || str_starts_with($path, 'password/');
+        $isAuthGuestPage = $request->routeIs('login', 'register', 'password.request', 'password.reset', 'password.email', 'password.update')
+            || $request->is('login', 'register')
+            || str_starts_with($request->path(), 'password/');
 
-        if ($isAuthGuestPage && $response->getStatusCode() === 200) {
+        if ($isAuthGuestPage) {
             $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
             $response->headers->set('Pragma', 'no-cache');
             $response->headers->set('Expires', '0');

@@ -43,7 +43,7 @@ class RegisterController extends Controller
             return back()->withErrors(['empresa_id' => 'Empresa no válida o inactiva.'])->withInput();
         }
 
-        User::create([
+        User::createAccount([
             'name' => $request->input('name'),
             'last_name' => $request->input('last_name'),
             'email' => mb_strtolower(trim((string) $request->input('email'))),

@@ -164,7 +164,7 @@
                 @if(!empty($sol->html_formulario))
                 <details class="mt-3">
                     <summary class="cursor-pointer text-sm text-blue-700">Ver formulario diligenciado</summary>
-                    <div class="mt-2 border border-gray-200 rounded-lg bg-white p-3 overflow-auto max-h-64">{!! $sol->html_formulario !!}</div>
+                    <div class="mt-2 border border-gray-200 rounded-lg bg-white p-3 overflow-auto max-h-64">@safeHtml($sol->html_formulario)</div>
                 </details>
                 @endif
                 <div class="mt-4 flex gap-2">
@@ -221,8 +221,8 @@
                         <button type="button" class="user-card flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all ${selectedUserId === u.id ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-teal-300 hover:bg-gray-50'}" data-user-id="${u.id}">
                             <img src="${u.photo_url || ('https://ui-avatars.com/api/?name=' + encodeURIComponent(u.full_name || u.name))}" alt="" class="w-10 h-10 rounded-full object-cover border border-gray-200">
                             <div class="min-w-0 flex-1">
-                                <p class="font-medium text-gray-900 truncate">${u.full_name || (u.name + ' ' + (u.last_name || ''))}</p>
-                                <p class="text-xs text-gray-500 truncate">${u.email || ''}</p>
+                                <p class="font-medium text-gray-900 truncate">${pwEscapeHtml(u.full_name || (u.name + ' ' + (u.last_name || '')))}</p>
+                                <p class="text-xs text-gray-500 truncate">${pwEscapeHtml(u.email || '')}</p>
                             </div>
                         </button>
                     `).join('');
@@ -257,8 +257,8 @@
                     ? '<p class="col-span-full text-gray-500 text-sm">No hay equipos disponibles (o ya están asignados).</p>'
                     : equipos.map(e => {
                         const imgs = (e.imagenes || []);
-                        const img1 = imgs[0] || '';
-                        const img2 = imgs[1] || '';
+                        const img1 = imgs[0] ? pwEscapeHtml(imgs[0]) : '';
+                        const img2 = imgs[1] ? pwEscapeHtml(imgs[1]) : '';
                         const checked = selectedEquipoIds.has(e.id);
                         return `
                         <button type="button" class="equipo-card flex items-start gap-3 p-3 rounded-xl border-2 text-left transition-all ${checked ? 'border-teal-500 bg-teal-50' : 'border-gray-200 hover:border-teal-300 hover:bg-gray-50'}" data-equipo-id="${e.id}">
@@ -267,8 +267,8 @@
                                 ${img2 ? `<img src="${img2}" alt="" class="w-10 h-10 rounded object-cover border border-gray-200">` : ''}
                             </div>
                             <div class="min-w-0 flex-1">
-                                <p class="font-medium text-gray-900 truncate">${e.nombre || ''}</p>
-                                <p class="text-xs text-gray-600 line-clamp-2">${e.descripcion || '—'}</p>
+                                <p class="font-medium text-gray-900 truncate">${pwEscapeHtml(e.nombre || '')}</p>
+                                <p class="text-xs text-gray-600 line-clamp-2">${pwEscapeHtml(e.descripcion || '—')}</p>
                             </div>
                         </button>
                     `;

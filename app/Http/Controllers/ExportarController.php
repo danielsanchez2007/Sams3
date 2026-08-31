@@ -183,7 +183,7 @@ class ExportarController extends Controller
 
         $pdf = Pdf::setOptions([
             'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
+            'isRemoteEnabled' => false,
             'defaultFont' => 'DejaVu Sans',
         ])
             ->loadHTML($fullHtml)
@@ -241,7 +241,7 @@ class ExportarController extends Controller
         $fullHtml = $result['fullHtml'];
         $pdf = Pdf::setOptions([
             'isHtml5ParserEnabled' => true,
-            'isRemoteEnabled' => true,
+            'isRemoteEnabled' => false,
             'defaultFont' => 'DejaVu Sans',
         ])
             ->loadHTML($fullHtml)
@@ -276,8 +276,9 @@ class ExportarController extends Controller
             function ($m) {
                 $rel = $m[1];
                 $path = Storage::disk('public')->path($rel);
-                if (file_exists($path)) {
-                    $b64 = base64_encode(file_get_contents($path));
+                $bytes = \App\Support\SafeStoragePath::readPublicBytes($rel);
+                if ($bytes !== null) {
+                    $b64 = base64_encode($bytes);
                     $ext = strtolower(pathinfo($rel, PATHINFO_EXTENSION)) ?: 'jpg';
                     $mime = $ext === 'png' ? 'image/png' : 'image/jpeg';
                     return 'src="data:' . $mime . ';base64,' . $b64 . '"';
@@ -290,16 +291,7 @@ class ExportarController extends Controller
 
     private function storagePathToDataUri(string $path): ?string
     {
-        $relative = ltrim($path, '/');
-        if (!Storage::disk('public')->exists($relative)) {
-            return null;
-        }
-        $abs = Storage::disk('public')->path($relative);
-        if (!is_file($abs) || !is_readable($abs)) {
-            return null;
-        }
-        $mime = @mime_content_type($abs) ?: 'image/jpeg';
-        return 'data:' . $mime . ';base64,' . base64_encode((string) file_get_contents($abs));
+        return \App\Support\SafeStoragePath::toDataUri($path);
     }
 
     private function applyPdfMediaTokens(string $html, $imagenes, ?User $user): string

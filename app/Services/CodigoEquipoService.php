@@ -197,16 +197,23 @@ class CodigoEquipoService
         }
 
         $alias = self::aliasTipo($equipo->tipoEquipo);
+        $tag = strtoupper((string) preg_replace('/[^A-Z0-9]/', '', $tag));
+        if ($tag === '') {
+            $tag = 'EQ';
+        }
         $patron = $prefijo . '-%-' . $tag . '-%';
+
+        $likeTag = '%-'.$tag.'-%';
+        $likePrefix = $tag.'-%';
 
         $maxEquipo = (int) DB::table('equipos')
             ->selectRaw("MAX(CAST(
                 CASE
-                    WHEN codigo LIKE '%-{$tag}-%' THEN SUBSTRING_INDEX(SUBSTRING_INDEX(codigo, '-{$tag}-', -1), '-', 1)
-                    WHEN codigo LIKE '{$tag}-%' THEN SUBSTRING_INDEX(codigo, '-', -1)
+                    WHEN codigo LIKE ? THEN SUBSTRING_INDEX(SUBSTRING_INDEX(codigo, ?, -1), '-', 1)
+                    WHEN codigo LIKE ? THEN SUBSTRING_INDEX(codigo, '-', -1)
                     ELSE 0
                 END AS UNSIGNED
-            )) as max_num")
+            )) as max_num", [$likeTag, '-'.$tag.'-', $likePrefix])
             ->whereNotNull('codigo')
             ->where(function ($q) use ($patron, $tag) {
                 $q->where('codigo', 'like', $patron)
@@ -217,11 +224,11 @@ class CodigoEquipoService
         $maxPool = (int) CodigoReutilizable::query()
             ->selectRaw("MAX(CAST(
                 CASE
-                    WHEN codigo LIKE '%-{$tag}-%' THEN SUBSTRING_INDEX(SUBSTRING_INDEX(codigo, '-{$tag}-', -1), '-', 1)
-                    WHEN codigo LIKE '{$tag}-%' THEN SUBSTRING_INDEX(codigo, '-', -1)
+                    WHEN codigo LIKE ? THEN SUBSTRING_INDEX(SUBSTRING_INDEX(codigo, ?, -1), '-', 1)
+                    WHEN codigo LIKE ? THEN SUBSTRING_INDEX(codigo, '-', -1)
                     ELSE 0
                 END AS UNSIGNED
-            )) as max_num")
+            )) as max_num", [$likeTag, '-'.$tag.'-', $likePrefix])
             ->where(function ($q) use ($patron, $tag) {
                 $q->where('codigo', 'like', $patron)
                     ->orWhere('codigo', 'like', $tag . '-%');

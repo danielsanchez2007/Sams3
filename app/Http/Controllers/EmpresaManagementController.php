@@ -391,7 +391,8 @@ class EmpresaManagementController extends Controller
             ]);
         }
 
-        $empresa = Empresa::create([
+        $empresa = new Empresa();
+        $empresa->fill([
             'nombre' => $request->nombre,
             'prefijo' => $prefijo,
             'color_primario' => $this->normalizeHex($request->color_primario),
@@ -416,9 +417,10 @@ class EmpresaManagementController extends Controller
             'logo_principal' => $logoPrincipal,
             'logo_secundario' => $logoSecundario,
             'foto_empresa' => $fotoEmpresa,
-            'modulos' => $this->buildDefaultModules(),
             'activo' => true
         ]);
+        $empresa->forceFill(['modulos' => $this->buildDefaultModules()]);
+        $empresa->save();
 
         return redirect()->route('empresa.gestion')
             ->with('success', '✅ Empresa creada exitosamente. Ahora crea al menos un usuario para esta empresa.')
@@ -588,12 +590,12 @@ class EmpresaManagementController extends Controller
             $empresa->save();
         }
 
-        User::create([
+        User::createAccount([
             'codigo' => $codigo,
             'name' => $request->name,
             'last_name' => $request->last_name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
             'role_id' => $role->id,
             'empresa_id' => $empresa->id,
             'active' => true,

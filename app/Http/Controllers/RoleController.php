@@ -263,12 +263,14 @@ class RoleController extends Controller
         $allowedPermKeys = array_keys($this->availablePermissionsForEmpresa($empresa));
         $perms = array_values(array_unique(array_filter((array) $request->input('permissions', []), fn ($p) => in_array($p, $allowedPermKeys, true))));
 
-        $role = Role::create([
+        $role = new Role();
+        $role->fill([
             'name' => $request->name,
             'description' => $request->description,
             'activo' => true,
-            'permissions' => $perms,
         ]);
+        $role->forceFill(['permissions' => $perms]);
+        $role->save();
 
         Cache::forget('sams_role_perms_adminoficina');
 
@@ -300,11 +302,12 @@ class RoleController extends Controller
         $allowedPermKeys = array_keys($this->availablePermissionsForEmpresa($empresa));
         $perms = array_values(array_unique(array_filter((array) $request->input('permissions', []), fn ($p) => in_array($p, $allowedPermKeys, true))));
 
-        $role->update([
+        $role->fill([
             'name' => $request->name,
             'description' => $request->description,
-            'permissions' => $perms,
         ]);
+        $role->forceFill(['permissions' => $perms]);
+        $role->save();
 
         Cache::forget('sams_role_perms_adminoficina');
 

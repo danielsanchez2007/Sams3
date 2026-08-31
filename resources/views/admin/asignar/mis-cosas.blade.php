@@ -63,7 +63,7 @@
                         data-template-id="acta-html-{{ $loop->index }}">
                     Ver mini vista
                 </button>
-                <template id="acta-html-{{ $loop->index }}">{!! $acta['html'] !!}</template>
+                <template id="acta-html-{{ $loop->index }}">@safeHtml($acta['html'])</template>
                 @endif
             </div>
             @empty

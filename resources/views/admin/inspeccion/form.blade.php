@@ -112,7 +112,7 @@
                     </div>
                     <div id="editableContainer" class="overflow-auto border border-gray-200 rounded-b-2xl p-4 bg-white" style="max-height: 65vh;">
                         <div id="editableTemplate" contenteditable="true" class="outline-none inspeccion-excel-view">
-                            {!! $renderedHtml !!}
+                            @safeHtml($renderedHtml)
                         </div>
                     </div>
                 </div>

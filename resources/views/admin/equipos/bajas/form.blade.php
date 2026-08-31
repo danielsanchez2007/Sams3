@@ -77,7 +77,7 @@
 
                     <div id="editableContainer" class="baja-editable-container overflow-auto border border-gray-200 rounded-lg p-4 bg-white">
                         <div id="editableTemplate" contenteditable="true" class="outline-none baja-excel-view">
-                            {!! $renderedHtml !!}
+                            @safeHtml($renderedHtml)
                         </div>
                     </div>
                 </div>

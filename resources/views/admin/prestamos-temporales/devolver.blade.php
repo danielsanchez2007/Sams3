@@ -16,7 +16,7 @@
         <input type="hidden" name="anticipada" value="{{ !empty($anticipada) ? 1 : 0 }}">
         <div class="pw-card rounded-xl p-4 space-y-3">
             <label class="text-sm font-medium">Formato (editable para devolución)</label>
-            <div id="editor" contenteditable="true" class="border rounded-lg p-3 min-h-[260px] text-sm bg-white">{!! $prestamo->html_formulario !!}</div>
+            <div id="editor" contenteditable="true" class="border rounded-lg p-3 min-h-[260px] text-sm bg-white">@safeHtml($prestamo->html_formulario)</div>
             <input type="hidden" name="signed_html" id="signed_html">
             <input type="hidden" name="firma_confirmada" id="firma_confirmada" value="0">
         </div>

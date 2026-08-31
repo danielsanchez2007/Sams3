@@ -424,14 +424,15 @@
                             </div>
                         </div>
                         <div class="flex-1">
-                            <p class="${type === 'success' ? 'text-green-800' : type === 'error' ? 'text-red-800' : 'text-yellow-800'} font-medium">${message}</p>
+                            <p class="pw-notify-msg ${type === 'success' ? 'text-green-800' : type === 'error' ? 'text-red-800' : 'text-yellow-800'} font-medium"></p>
                         </div>
                         <button onclick="this.parentElement.parentElement.remove()" class="${type === 'success' ? 'text-green-600' : type === 'error' ? 'text-red-600' : 'text-yellow-600'} hover:${type === 'success' ? 'text-green-800' : type === 'error' ? 'text-red-800' : 'text-yellow-800'}">
                             <i data-lucide="x" class="w-4 h-4"></i>
                         </button>
                     </div>
                 `;
-                
+                const msgEl = notification.querySelector('.pw-notify-msg');
+                if (msgEl) msgEl.textContent = message || '';
                 container.appendChild(notification);
                 
                 // Auto-remove after 5 seconds
