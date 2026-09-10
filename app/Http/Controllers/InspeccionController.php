@@ -7,6 +7,7 @@ use App\Models\Equipo;
 use App\Models\EquipoInspeccion;
 use App\Models\User;
 use App\Models\InspeccionPlantilla;
+use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
 use App\Support\UploadedFileStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -167,20 +168,14 @@ class InspeccionController extends Controller
         $renderedHtml = $this->cleanTemplateArtifacts($renderedHtml);
 
         $clase = $equipo->claseEquipo;
+        $panel = $this->inspectionPanelData($equipo);
+        $usuarios = $panel['usuarios'];
+        $usuariosJs = $panel['usuariosJs'];
+        $hvChips = $panel['hvChips'];
+        $panelUserId = $panel['panelUserId'];
+        $inspectorUserId = $panel['panelUserId'];
 
-        $usuarios = User::query()
-            ->where('active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'last_name', 'photo', 'signature']);
-
-        $usuariosJs = $usuarios->map(fn ($u) => [
-            'id' => (int) $u->id,
-            'name' => trim(($u->name ?? '') . ' ' . ($u->last_name ?? '')),
-            'photo' => $u->photo ? asset('storage/' . $u->photo) : null,
-            'signature' => $u->signature ? asset('storage/' . $u->signature) : null,
-        ])->values();
-
-        return view('admin.inspeccion.form', compact('equipo', 'plantilla', 'clase', 'renderedHtml', 'fechaHoy', 'puedeInspeccionar', 'requiereObligatoria', 'usuarios', 'usuariosJs'));
+        return view('admin.inspeccion.form', compact('equipo', 'plantilla', 'clase', 'renderedHtml', 'fechaHoy', 'puedeInspeccionar', 'requiereObligatoria', 'usuarios', 'usuariosJs', 'hvChips', 'panelUserId', 'inspectorUserId'));
     }
 
     public function verificarObligatoria(Request $request)
@@ -265,19 +260,13 @@ class InspeccionController extends Controller
         abort_unless($equipo->activo, 404);
         $clase = $equipo->claseEquipo;
 
-        $usuarios = User::query()
-            ->where('active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'last_name', 'photo', 'signature']);
+        $panel = $this->inspectionPanelData($equipo);
+        $usuarios = $panel['usuarios'];
+        $usuariosJs = $panel['usuariosJs'];
+        $hvChips = $panel['hvChips'];
+        $panelUserId = $panel['panelUserId'];
 
-        $usuariosJs = $usuarios->map(fn ($u) => [
-            'id' => (int) $u->id,
-            'name' => trim(($u->name ?? '') . ' ' . ($u->last_name ?? '')),
-            'photo' => $u->photo ? asset('storage/' . $u->photo) : null,
-            'signature' => $u->signature ? asset('storage/' . $u->signature) : null,
-        ])->values();
-
-        return view('admin.inspeccion.edit', compact('inspeccion', 'equipo', 'clase', 'usuarios', 'usuariosJs'));
+        return view('admin.inspeccion.edit', compact('inspeccion', 'equipo', 'clase', 'usuarios', 'usuariosJs', 'hvChips', 'panelUserId'));
     }
 
     public function update(Request $request, EquipoInspeccion $inspeccion)
@@ -382,23 +371,51 @@ class InspeccionController extends Controller
         return $html;
     }
 
+    /**
+     * @return array{usuarios: \Illuminate\Support\Collection, usuariosJs: \Illuminate\Support\Collection, hvChips: array, panelUserId: int|null}
+     */
+    private function inspectionPanelData(Equipo $equipo): array
+    {
+        $empresaId = $this->resolveTenantEmpresaId();
+        $authId = auth()->id();
+        $usuarios = User::query()
+            ->with('cargo:id,name')
+            ->where('active', true)
+            ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
+            ->orderBy('name')
+            ->get(['id', 'name', 'last_name', 'email', 'phone', 'corporate_phone', 'photo', 'signature', 'cargo_id', 'empresa_id']);
+
+        if ($authId && !$usuarios->firstWhere('id', $authId)) {
+            $self = User::query()
+                ->with('cargo:id,name')
+                ->whereKey($authId)
+                ->first(['id', 'name', 'last_name', 'email', 'phone', 'corporate_phone', 'photo', 'signature', 'cargo_id', 'empresa_id']);
+            if ($self) {
+                $usuarios = $usuarios->prepend($self);
+            }
+        }
+
+        $usuariosJs = $usuarios->map(fn ($u) => [
+            'id' => (int) $u->id,
+            'name' => trim(($u->name ?? '') . ' ' . ($u->last_name ?? '')),
+            'email' => (string) ($u->email ?? ''),
+            'phone' => (string) ($u->phone ?: $u->corporate_phone ?: ''),
+            'cargo' => (string) ($u->cargo?->name ?? ''),
+            'photo' => $u->photo ? asset('storage/' . $u->photo) : null,
+            'signature' => $u->signature ? asset('storage/' . $u->signature) : null,
+        ])->values();
+
+        return [
+            'usuarios' => $usuarios,
+            'usuariosJs' => $usuariosJs,
+            'hvChips' => HojaVidaAutoFields::chipsForEquipo($equipo),
+            'panelUserId' => auth()->id(),
+        ];
+    }
+
     private function buildAutoFields(Equipo $equipo): array
     {
-        $equipo->loadMissing(['tipoEquipo', 'claseEquipo', 'empresa', 'sede', 'bodega', 'fabricante']);
-        $fechaHoy = now();
-        return [
-            'CODIGO' => (string) $equipo->codigo,
-            'NOMBRE' => (string) $equipo->nombre,
-            'SERIAL' => (string) $equipo->serial,
-            'TIPO_EQUIPO' => (string) ($equipo->tipoEquipo?->nombre ?? ''),
-            'CLASE_EQUIPO' => (string) ($equipo->claseEquipo?->nombre ?? ''),
-            'EMPRESA' => (string) ($equipo->empresa?->nombre ?? ''),
-            'SEDE' => (string) ($equipo->sede?->nombre ?? ''),
-            'BODEGA' => (string) ($equipo->bodega?->nombre ?? ''),
-            'FABRICANTE' => (string) ($equipo->fabricante?->name ?? ''),
-            'FECHA_HOY' => $fechaHoy->format('Y-m-d'),
-            'USUARIO' => (string) (auth()->user()?->name ?? ''),
-        ];
+        return HojaVidaAutoFields::forEquipo($equipo);
     }
 
     private function cleanTemplateArtifacts(string $html): string

@@ -8,14 +8,13 @@ use App\Models\HojaVidaDocumento;
 use App\Models\HojaVidaPlantilla;
 use App\Models\ClaseEquipo;
 use App\Models\TipoEquipo;
-use App\Models\AuditoriaEquipo;
 use App\Models\User;
+use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Html as SpreadsheetHtmlReader;
@@ -30,43 +29,15 @@ class HojaVidaController extends Controller
     public function index(Request $request)
     {
         $this->assertCanViewModule('hoja_vida');
-        $empresaId = $this->resolveTenantEmpresaId();
-        $clases = ClaseEquipo::query()
-            ->with('tipoEquipo')
-            ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
-            ->orderBy('nombre')
-            ->get(['id', 'tipo_equipo_id', 'nombre']);
 
-        $plantillasByClase = HojaVidaPlantilla::query()
-            ->whereNotNull('clase_equipo_id')
-            ->pluck('id', 'clase_equipo_id');
-
-        return view('admin.hoja_vida.index', compact('clases', 'plantillasByClase'));
+        return redirect()->route('formatos.index');
     }
 
     public function clase(Request $request, ClaseEquipo $clase)
     {
         $this->assertCanViewModule('hoja_vida');
-        $plantilla = HojaVidaPlantilla::query()->where('clase_equipo_id', $clase->id)->first();
-        if (!$plantilla) {
-            return redirect()->route('hoja-vida.index')->with('error', '⚠️ Esa clase de equipo no tiene plantilla asignada.');
-        }
 
-        $equipos = Equipo::query()
-            ->with(['empresa', 'sede', 'bodega', 'imagenes'])
-            ->where('activo', true)
-            ->where('clase_equipo_id', $clase->id)
-            ->orderByRaw("CASE WHEN codigo LIKE 'IN-%' THEN CAST(SUBSTRING(codigo,4) AS UNSIGNED) END ASC")
-            ->orderBy('id')
-            ->paginate(15)
-            ->withQueryString();
-
-        $docsByEquipo = HojaVidaDocumento::query()
-            ->whereIn('equipo_id', $equipos->getCollection()->pluck('id'))
-            ->get()
-            ->keyBy('equipo_id');
-
-        return view('admin.hoja_vida.list', compact('clase', 'equipos', 'plantilla', 'docsByEquipo'));
+        return redirect()->route('formatos.clase', $clase);
     }
 
     public function form(Request $request, ClaseEquipo $clase, Equipo $equipo)
@@ -75,43 +46,7 @@ class HojaVidaController extends Controller
         abort_unless($equipo->activo, 404);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
-        $equipo->loadMissing(['imagenes']);
-
-        $plantilla = HojaVidaPlantilla::query()->where('clase_equipo_id', $clase->id)->first();
-        if (!$plantilla || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
-            return redirect()->route('hoja-vida.clase', $clase)->with('error', '⚠️ Esa clase de equipo no tiene plantilla válida.');
-        }
-
-        $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
-
-        if ($doc) {
-            $renderedHtml = $doc->edited_html;
-        } else {
-            $templateHtml = $this->excelToHtml(Storage::disk('public')->path($plantilla->plantilla_excel_path));
-            $defaults = $this->buildAutoFields($equipo);
-            $renderedHtml = $this->replaceTokens($templateHtml, $defaults);
-            $renderedHtml = $this->blankRemainingTokens($renderedHtml);
-            $renderedHtml = $this->cleanTemplateArtifacts($renderedHtml);
-        }
-
-        $equipoImagenes = $equipo->imagenes
-            ->filter(fn ($img) => in_array($img->tipo, ['general', 'etiqueta', 'certificacion_evidencia', 'kit_general'], true))
-            ->values();
-
-        $usuarios = User::query()
-            ->where('active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'last_name', 'photo', 'signature']);
-
-        $usuariosJs = $usuarios->map(function ($u) {
-            return [
-                'id' => (int) $u->id,
-                'photo' => $u->photo ? asset('storage/' . $u->photo) : null,
-                'signature' => $u->signature ? asset('storage/' . $u->signature) : null,
-            ];
-        })->values();
-
-        return view('admin.hoja_vida.form', compact('clase', 'equipo', 'plantilla', 'doc', 'renderedHtml', 'equipoImagenes', 'usuarios', 'usuariosJs'));
+        return redirect()->route('formatos.show', [$clase, $equipo]);
     }
 
     public function store(Request $request, ClaseEquipo $clase, Equipo $equipo)
@@ -990,90 +925,7 @@ class HojaVidaController extends Controller
 
     private function buildAutoFields(Equipo $equipo): array
     {
-        $equipo->loadMissing(['tipoEquipo', 'claseEquipo', 'empresa', 'sede', 'bodega', 'fabricante']);
-
-        $fechaHoy = now();
-
-        $ubicacion = trim((string) ($equipo->sede?->nombre ?? ''));
-        if ($equipo->bodega?->nombre) {
-            $ubicacion = trim($ubicacion . ' - ' . (string) $equipo->bodega->nombre);
-        }
-
-        $uso = (string) ($equipo->tipo_uso ?? '');
-        if (strtolower(trim($uso)) === 'otro' && $equipo->tipo_uso_otro) {
-            $uso = (string) $equipo->tipo_uso_otro;
-        }
-
-        $auditoria = null;
-        if (Schema::hasTable('auditoria_equipos')) {
-            $auditoria = AuditoriaEquipo::query()
-                ->where('equipo_id', $equipo->id)
-                ->orderByDesc('fecha_auditoria')
-                ->orderByDesc('id')
-                ->first();
-        }
-
-        $data = [
-            'CODIGO' => (string) $equipo->codigo,
-            'CODIGO_IN' => (string) $equipo->codigo,
-            'NOMBRE' => (string) $equipo->nombre,
-            'NOMBRE_EQUIPO' => (string) $equipo->nombre,
-            'SERIAL' => (string) $equipo->serial,
-            'SERIE' => (string) $equipo->serial,
-            'DESCRIPCION' => (string) ($equipo->descripcion ?? ''),
-            'DESCRIPCION_GENERAL' => (string) ($equipo->descripcion ?? ''),
-            'TIPO_EQUIPO' => (string) ($equipo->tipoEquipo?->nombre ?? ''),
-            'CLASE_EQUIPO' => (string) ($equipo->claseEquipo?->nombre ?? ''),
-
-            'EMPRESA' => (string) ($equipo->empresa?->nombre ?? ''),
-            'SEDE' => (string) ($equipo->sede?->nombre ?? ''),
-            'BODEGA' => (string) ($equipo->bodega?->nombre ?? ''),
-            'UBICACION' => $ubicacion,
-
-            'FABRICANTE' => (string) ($equipo->fabricante?->name ?? ''),
-
-            'FECHA_COMPRA' => $equipo->fecha_compra ? $equipo->fecha_compra->format('Y-m-d') : '',
-            'FACTURA' => (string) ($equipo->numero_factura ?? ''),
-            'LOTE' => (string) ($equipo->lote ?? ''),
-
-            'USO' => $uso,
-            'TIPO_USO' => (string) ($equipo->tipo_uso ?? ''),
-            'TIPO_USO_OTRO' => (string) ($equipo->tipo_uso_otro ?? ''),
-
-            'FECHA_FABRICACION' => $equipo->fecha_fabricacion ? $equipo->fecha_fabricacion->format('Y-m-d') : '',
-            'FECHA_USO' => $equipo->fecha_uso ? $equipo->fecha_uso->format('Y-m-d') : '',
-
-            'VIDA_UTIL' => $equipo->vida_util !== null ? (string) $equipo->vida_util : '',
-            'ESTADO_ITEM' => (string) ($equipo->estado_item ?? ''),
-            'OBSERVACION' => (string) ($equipo->observacion ?? ''),
-
-            'CERTIFICACION' => (string) ($equipo->certificacion_descripcion ?? ''),
-            'CERTIFICACION_DESCRIPCION' => (string) ($equipo->certificacion_descripcion ?? ''),
-            'ESPECIFICACIONES_TECNICAS' => (string) ($equipo->especificaciones_tecnicas ?? ''),
-
-            'TIENE_RESISTENCIA' => (string) ((int) ($equipo->tiene_resistencia ?? 0)),
-            'RESISTENCIA' => (string) ($equipo->resistencia_descripcion ?? ''),
-
-            'FECHA_HOY' => $fechaHoy->format('Y-m-d'),
-            'HORA_HOY' => $fechaHoy->format('H:i'),
-            'USUARIO' => (string) (auth()->user()?->name ?? ''),
-        ];
-
-        if ($auditoria) {
-            $data['CUMPLE_NORMAS'] = $auditoria->cumple_normas ? 'SI' : 'NO';
-            $data['ESTADO_FISICO'] = (string) ($auditoria->estado_fisico ?? '');
-            $data['ESTADO_FUNCIONAL'] = (string) ($auditoria->estado_funcional ?? '');
-            $data['PUNTUACION'] = $auditoria->puntuacion !== null ? (string) $auditoria->puntuacion : '';
-            $data['FECHA_AUDITORIA'] = $auditoria->fecha_auditoria ? $auditoria->fecha_auditoria->format('Y-m-d') : '';
-        } else {
-            $data['CUMPLE_NORMAS'] = '';
-            $data['ESTADO_FISICO'] = '';
-            $data['ESTADO_FUNCIONAL'] = '';
-            $data['PUNTUACION'] = '';
-            $data['FECHA_AUDITORIA'] = '';
-        }
-
-        return $data;
+        return HojaVidaAutoFields::forEquipo($equipo);
     }
 
     private function cleanTemplateArtifacts(string $html): string

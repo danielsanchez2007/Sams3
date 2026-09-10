@@ -178,39 +178,54 @@
 </div>
 
 <!-- Create Fabricante Modal -->
-<div id="createFabricanteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Registrar Nuevo Fabricante</h3>
-        <form action="{{ route('fabricantes.store') }}" method="POST">
-            @csrf
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Fabricante *</label>
-                    <input type="text" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+<div id="createFabricanteModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="createFabricanteTitle">
+    <div class="pw-modal-content pw-modal-md">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="factory" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Contacto</label>
-                    <input type="text" name="contacto" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                    <input type="text" name="telefono" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <h3 id="createFabricanteTitle" class="pw-modal-title">Registrar fabricante</h3>
+                    <p class="pw-modal-subtitle">Agrega un fabricante y sus datos de contacto.</p>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideCreateFabricanteModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <button type="button" class="pw-modal-close" onclick="hideCreateFabricanteModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="{{ route('fabricantes.store') }}" method="POST">
+            @csrf
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del fabricante <span class="pw-req">*</span></label>
+                        <input type="text" name="name" required class="w-full">
+                    </div>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea name="description" rows="3" class="w-full"></textarea>
+                    </div>
+                    <div>
+                        <label>Contacto</label>
+                        <input type="text" name="contacto" class="w-full">
+                    </div>
+                    <div>
+                        <label>Teléfono</label>
+                        <input type="text" name="telefono" class="w-full">
+                    </div>
+                    <div>
+                        <label>Email</label>
+                        <input type="email" name="email" class="w-full">
+                    </div>
+                </div>
+            </div>
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideCreateFabricanteModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Registrar Fabricante
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Registrar fabricante
                 </button>
             </div>
         </form>
@@ -218,45 +233,61 @@
 </div>
 
 <!-- Edit Fabricante Modal -->
-<div id="editFabricanteModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Fabricante</h3>
+<div id="editFabricanteModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="editFabricanteTitle">
+    <div class="pw-modal-content pw-modal-md">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="factory" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="editFabricanteTitle" class="pw-modal-title">Editar fabricante</h3>
+                    <p class="pw-modal-subtitle">Actualiza la información de contacto del fabricante.</p>
+                </div>
+            </div>
+            <button type="button" class="pw-modal-close" onclick="hideEditFabricanteModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
         <form id="editFabricanteForm" method="POST">
             @csrf
             @method('PUT')
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Fabricante *</label>
-                    <input type="text" id="editNombre" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea id="editDescripcion" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Contacto</label>
-                    <input type="text" id="editContacto" name="contacto" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                    <input type="text" id="editTelefono" name="telefono" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                    <input type="email" id="editEmail" name="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del fabricante <span class="pw-req">*</span></label>
+                        <input type="text" id="editNombre" name="name" required class="w-full">
+                    </div>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea id="editDescripcion" name="description" rows="3" class="w-full"></textarea>
+                    </div>
+                    <div>
+                        <label>Contacto</label>
+                        <input type="text" id="editContacto" name="contacto" class="w-full">
+                    </div>
+                    <div>
+                        <label>Teléfono</label>
+                        <input type="text" id="editTelefono" name="telefono" class="w-full">
+                    </div>
+                    <div>
+                        <label>Email</label>
+                        <input type="email" id="editEmail" name="email" class="w-full">
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideEditFabricanteModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideEditFabricanteModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Actualizar Fabricante
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Actualizar fabricante
                 </button>
             </div>
         </form>
     </div>
 </div>
+
 @endsection
 
 @section('scripts')

@@ -8,8 +8,8 @@ use App\Models\EquipoBaja;
 use App\Models\EquipoImagen;
 use App\Models\EquipoInspeccion;
 use App\Models\HojaVidaDocumento;
-use App\Models\HojaVidaPlantilla;
 use App\Models\User;
+use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -125,7 +125,7 @@ class ExportarController extends Controller
         if (!$clase) {
             return redirect()->route('exportar.index')->with('error', 'Equipo sin clase asignada.');
         }
-        $url = route('hoja-vida.pdf', [$clase, $equipo]) . '?async=0&download=1';
+        $url = route('formatos.pdf', [$clase, $equipo]);
         return redirect($url);
     }
 
@@ -572,21 +572,12 @@ CSS;
             $user = $doc->signature_user_id ? User::query()->find($doc->signature_user_id) : null;
             $htmlHv = $this->applyPdfMediaTokens((string) $doc->edited_html, $imagenes, $user);
             $htmlHv = $this->convertStorageImagesForPdf($htmlHv);
-        } elseif ($clase) {
-            $plantilla = HojaVidaPlantilla::query()->where('clase_equipo_id', $clase->id)->first();
-            if ($plantilla && Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
-                try {
-                    $templateHtml = $this->excelToHtml(Storage::disk('public')->path($plantilla->plantilla_excel_path));
-                    $defaults = $this->buildAutoFields($equipo);
-                    foreach ($defaults as $key => $value) {
-                        $token = '{{' . strtoupper((string) $key) . '}}';
-                        $templateHtml = str_replace($token, e((string) $value), $templateHtml);
-                    }
-                    $templateHtml = (string) preg_replace('/\{\{\s*[A-Z0-9_\-]+\s*\}\}/', '', $templateHtml);
-                    $htmlHv = $this->convertStorageImagesForPdf($templateHtml);
-        } catch (\Throwable $e) {
-                    $htmlHv = '<p>Hoja de vida no completada.</p>';
-                }
+        } else {
+            try {
+                $htmlHv = HojaVidaAutoFields::renderHtml($equipo, true, false);
+            } catch (\Throwable $e) {
+                report($e);
+                $htmlHv = '';
             }
         }
         if ($htmlHv) {
@@ -825,19 +816,7 @@ CSS;
 
     private function buildAutoFields(Equipo $equipo): array
     {
-        $equipo->loadMissing(['tipoEquipo', 'claseEquipo', 'empresa', 'sede', 'bodega', 'fabricante']);
-        return [
-            'CODIGO' => (string) $equipo->codigo,
-            'NOMBRE' => (string) $equipo->nombre,
-            'SERIAL' => (string) $equipo->serial,
-            'TIPO_EQUIPO' => (string) ($equipo->tipoEquipo?->nombre ?? ''),
-            'CLASE_EQUIPO' => (string) ($equipo->claseEquipo?->nombre ?? ''),
-            'EMPRESA' => (string) ($equipo->empresa?->nombre ?? ''),
-            'SEDE' => (string) ($equipo->sede?->nombre ?? ''),
-            'BODEGA' => (string) ($equipo->bodega?->nombre ?? ''),
-            'FABRICANTE' => (string) ($equipo->fabricante?->name ?? ''),
-            'FECHA_HOY' => now()->format('Y-m-d'),
-        ];
+        return HojaVidaAutoFields::forEquipo($equipo);
     }
 
     public static function tipoOrigen(Equipo $equipo): string

@@ -191,7 +191,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     if (pdfClose) pdfClose.addEventListener('click', closePdfModal);
-    if (pdfBackdrop) pdfBackdrop.addEventListener('click', closePdfModal);
     function closePdfModal() {
         if (pdfModal) {
             pdfModal.classList.add('hidden');
@@ -263,7 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.style.overflow = '';
     }
     if (modalVerCerrar) modalVerCerrar.addEventListener('click', cerrarModalVer);
-    if (modalVerBackdrop) modalVerBackdrop.addEventListener('click', cerrarModalVer);
 });
 </script>
 @endsection

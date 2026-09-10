@@ -13,6 +13,7 @@ use App\Support\HtmlSanitizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -315,6 +316,7 @@ class PrestamoTemporalController extends Controller
                         'created_by' => $aviso['created_by'],
                     ]);
                 }
+                Cache::forget('sams_aviso_tipo_' . $empresaDestino);
             }
         });
 

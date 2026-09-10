@@ -7,6 +7,7 @@ use App\Models\Empresa;
 use App\Services\EmpresaContext;
 use App\Services\VistaOficina;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 
 class SugerenciaController extends Controller
@@ -66,6 +67,8 @@ class SugerenciaController extends Controller
             'created_by' => auth()->id(),
         ]);
 
+        Cache::forget('sams_aviso_tipo_' . $empresaId);
+
         return redirect()->route('sugerencias.index')->with('success', 'Aviso creado correctamente. Aparecerá en rojo hasta que la empresa cargue una imagen de cumplimiento.');
     }
 
@@ -95,6 +98,8 @@ class SugerenciaController extends Controller
             'tipo' => 'ok',
             'imagen_cumplimiento_path' => $path,
         ]);
+
+        Cache::forget('sams_aviso_tipo_' . $aviso->empresa_id);
 
         return redirect()->route('sugerencias.index')->with('success', 'Aviso cumplido. Se cargó la imagen correctamente.');
     }

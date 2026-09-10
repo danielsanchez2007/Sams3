@@ -6,8 +6,6 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Editar Rol - SAMS</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         @keyframes fadeIn {

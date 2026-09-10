@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Cargo;
 use App\Models\Empresa;
+use App\Models\User;
 use App\Services\EmpresaContext;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -48,11 +49,14 @@ class CargoController extends Controller
 
         $query->orderBy('id', 'desc');
 
-        $chartTopUsersByCargo = (clone $query)
+        // Clonar ANTES de paginar: MySQL no admite LIMIT dentro de subconsultas IN.
+        $filteredQuery = clone $query;
+
+        $chartTopUsersByCargo = (clone $filteredQuery)
             ->reorder()
             ->orderByDesc('users_count')
             ->limit(10)
-            ->get(['id', 'name', 'users_count'])
+            ->get()
             ->map(function ($c) {
                 return [
                     'label' => \Illuminate\Support\Str::limit((string) $c->name, 34),
@@ -63,7 +67,7 @@ class CargoController extends Controller
             ->all();
 
         if ($perPage === 'all') {
-            $items = $query->get();
+            $items = (clone $filteredQuery)->get();
             $cargos = new LengthAwarePaginator(
                 $items,
                 $items->count(),
@@ -75,13 +79,16 @@ class CargoController extends Controller
                 ]
             );
         } else {
-            $cargos = $query->paginate((int) $perPage)->appends($request->query());
+            $cargos = (clone $filteredQuery)->paginate((int) $perPage)->appends($request->query());
         }
 
-        $totalCargos = (clone $query)->count();
-        $totalUsersAssigned = (clone $query)->withCount('users')->get()->sum('users_count');
-        $cargosActive = (clone $query)->where('activo', true)->count();
-        $cargosInactive = (clone $query)->where('activo', false)->count();
+        $totalCargos = (clone $filteredQuery)->count();
+        $cargoIds = (clone $filteredQuery)->reorder()->pluck('id');
+        $totalUsersAssigned = $cargoIds->isEmpty()
+            ? 0
+            : (int) User::query()->whereIn('cargo_id', $cargoIds)->count();
+        $cargosActive = (clone $filteredQuery)->where('activo', true)->count();
+        $cargosInactive = (clone $filteredQuery)->where('activo', false)->count();
         $stats = [
             'total' => $totalCargos,
             'users_assigned' => $totalUsersAssigned,

@@ -110,9 +110,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     closeBtn?.addEventListener('click', closeModal);
-    modal?.addEventListener('click', function (e) {
-        if (e.target === modal) closeModal();
-    });
 });
 </script>
 @endsection

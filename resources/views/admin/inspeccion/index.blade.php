@@ -124,7 +124,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (modal) modal.classList.add('hidden');
     }
     if (btnCerrar) btnCerrar.addEventListener('click', cerrarModal);
-    if (backdrop) backdrop.addEventListener('click', cerrarModal);
 });
 </script>
 @endsection

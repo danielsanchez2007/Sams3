@@ -15,6 +15,7 @@ use App\Services\EmpresaContext;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class AdminController extends Controller
 {
@@ -27,7 +28,7 @@ class AdminController extends Controller
     public function dashboard()
     {
         $empresaId = EmpresaContext::empresaId() ?? Auth::user()?->empresa_id;
-        $principalId = Empresa::orderBy('id')->value('id');
+        $principalId = Cache::remember('sams_empresa_principal_id', 3600, fn () => Empresa::query()->orderBy('id')->value('id'));
         $empresaActivaId = $empresaId ?: $principalId;
 
         $equiposBase = Equipo::query();
@@ -161,7 +162,7 @@ SQL;
     private function buildEquiposResumenQuery(): Builder
     {
         $empresaId = EmpresaContext::empresaId() ?? Auth::user()?->empresa_id;
-        $principalId = Empresa::orderBy('id')->value('id');
+        $principalId = Cache::remember('sams_empresa_principal_id', 3600, fn () => Empresa::query()->orderBy('id')->value('id'));
         $empresaActivaId = $empresaId ?: $principalId;
 
         $q = Equipo::query();

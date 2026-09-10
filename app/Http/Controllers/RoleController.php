@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Empresa;
 use App\Models\Role;
+use App\Models\User;
 use App\Services\EmpresaContext;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -148,11 +149,14 @@ class RoleController extends Controller
 
         $query->orderBy('id', 'desc');
 
-        $chartTopUsersByRole = (clone $query)
+        // Clonar ANTES de paginar: MySQL no admite LIMIT dentro de subconsultas IN.
+        $filteredQuery = clone $query;
+
+        $chartTopUsersByRole = (clone $filteredQuery)
             ->reorder()
             ->orderByDesc('users_count')
             ->limit(10)
-            ->get(['id', 'name', 'users_count'])
+            ->get()
             ->map(function ($r) {
                 return [
                     'label' => \Illuminate\Support\Str::limit((string) $r->name, 34),
@@ -163,7 +167,7 @@ class RoleController extends Controller
             ->all();
 
         if ($perPage === 'all') {
-            $items = $query->get();
+            $items = (clone $filteredQuery)->get();
             $roles = new LengthAwarePaginator(
                 $items,
                 $items->count(),
@@ -175,13 +179,16 @@ class RoleController extends Controller
                 ]
             );
         } else {
-            $roles = $query->paginate((int) $perPage)->appends($request->query());
+            $roles = (clone $filteredQuery)->paginate((int) $perPage)->appends($request->query());
         }
 
-        $totalRoles = (clone $query)->count();
-        $totalUsersAssigned = (clone $query)->withCount('users')->get()->sum('users_count');
-        $rolesActive = (clone $query)->where('activo', true)->count();
-        $rolesInactive = (clone $query)->where('activo', false)->count();
+        $totalRoles = (clone $filteredQuery)->count();
+        $roleIds = (clone $filteredQuery)->reorder()->pluck('id');
+        $totalUsersAssigned = $roleIds->isEmpty()
+            ? 0
+            : (int) User::query()->whereIn('role_id', $roleIds)->count();
+        $rolesActive = (clone $filteredQuery)->where('activo', true)->count();
+        $rolesInactive = (clone $filteredQuery)->where('activo', false)->count();
         $stats = [
             'total' => $totalRoles,
             'users_assigned' => $totalUsersAssigned,

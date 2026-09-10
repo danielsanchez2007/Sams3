@@ -68,8 +68,11 @@
     $empresaIdParaSugerencias = \App\Services\EmpresaContext::empresaId() ?: $user?->empresa_id;
     $sugerenciasEstado = null;
     if ($empresaIdParaSugerencias) {
-        $ultimoAviso = \App\Models\AvisoEmpresa::where('empresa_id', $empresaIdParaSugerencias)->orderByDesc('created_at')->first();
-        $sugerenciasEstado = $ultimoAviso?->tipo ?? 'ok';
+        $sugerenciasEstado = \Illuminate\Support\Facades\Cache::remember(
+            'sams_aviso_tipo_' . $empresaIdParaSugerencias,
+            45,
+            fn () => \App\Models\AvisoEmpresa::where('empresa_id', $empresaIdParaSugerencias)->orderByDesc('id')->value('tipo') ?? 'ok'
+        );
     }
 @endphp
 
@@ -138,7 +141,7 @@
         @if($isGlobalAdmin || $empresaHasModulo('users') || $empresaHasModulo('roles') || $empresaHasModulo('cargos') || $empresaHasModulo('grupos') || $empresaHasModulo('fabricantes'))
         <div class="relative group">
             <div class="absolute -left-2 top-0 bottom-0 w-1 bg-purple-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <button onclick="toggleSubmenu('gestion')" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-purple-50 hover:text-purple-700 rounded-xl transition-all duration-200 group">
+            <button type="button" data-toggle-submenu="gestion" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-purple-50 hover:text-purple-700 rounded-xl transition-all duration-200 group">
                 <div class="flex items-center space-x-4">
                     <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors" data-icon="menu">
                         <i data-lucide="menu" class="w-5 h-5" data-icon="menu"></i>
@@ -148,7 +151,9 @@
                         <p class="text-xs ">Usuarios y roles</p>
                     </div>
                 </div>
-                <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200" id="gestion-arrow" style="transform: {{ request()->routeIs('users.*') || request()->routeIs('roles.*') || request()->routeIs('cargos.*') || request()->routeIs('grupos.*') || request()->routeIs('fabricantes.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}"></i>
+                <span id="gestion-arrow" class="inline-flex transition-transform duration-200" style="transform: {{ request()->routeIs('users.*') || request()->routeIs('roles.*') || request()->routeIs('cargos.*') || request()->routeIs('grupos.*') || request()->routeIs('fabricantes.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}">
+                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                </span>
             </button>
             <div id="gestion-submenu" class="{{ request()->routeIs('users.*') || request()->routeIs('roles.*') || request()->routeIs('cargos.*') || request()->routeIs('grupos.*') || request()->routeIs('fabricantes.*') ? '' : 'hidden' }} ml-4 mt-2 space-y-2">
                 @if($isGlobalAdmin || $empresaHasModulo('users'))
@@ -190,7 +195,7 @@
         @if(!$isGlobalOutsideEmpresa && $hasPerm($effectivePermissions, 'equipos') && $empresaHasModulo('equipos'))
         <div class="relative group">
             <div class="absolute -left-2 top-0 bottom-0 w-1 bg-green-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <button onclick="toggleSubmenu('equipos')" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-green-50 hover:text-green-700 rounded-xl transition-all duration-200 group">
+            <button type="button" data-toggle-submenu="equipos" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-green-50 hover:text-green-700 rounded-xl transition-all duration-200 group">
                 <div class="flex items-center space-x-4">
                     <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors" data-icon="monitor">
                         <i data-lucide="monitor" class="w-5 h-5" data-icon="monitor"></i>
@@ -200,7 +205,9 @@
                         <p class="text-xs ">Hardware y dispositivos</p>
                     </div>
                 </div>
-                <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200" id="equipos-arrow" style="transform: {{ request()->routeIs('equipos.*') || request()->routeIs('tipos.*') || request()->routeIs('clases.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}"></i>
+                <span id="equipos-arrow" class="inline-flex transition-transform duration-200" style="transform: {{ request()->routeIs('equipos.*') || request()->routeIs('tipos.*') || request()->routeIs('clases.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}">
+                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                </span>
             </button>
             <div id="equipos-submenu" class="{{ request()->routeIs('equipos.*') || request()->routeIs('tipos.*') || request()->routeIs('clases.*') ? '' : 'hidden' }} ml-4 mt-2 space-y-2">
                 <a href="{{ route('equipos.index') }}" class="sidebar-item flex items-center px-4 py-3 {{ request()->routeIs('equipos.index') || request()->routeIs('equipos.create') || request()->routeIs('equipos.edit') ? 'sidebar-item--active' : '' }} rounded-lg transition-all duration-200">
@@ -239,7 +246,7 @@
         @if(($hasPerm($effectivePermissions, 'empresa') && $isGlobalAdmin) || ($empresaActiva && ($empresaHasModulo('empresa') || $empresaHasModulo('sede') || $empresaHasModulo('bodega'))))
         <div class="relative group">
             <div class="absolute -left-2 top-0 bottom-0 w-1 bg-orange-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <button onclick="toggleSubmenu('empresa')" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-orange-50 hover:text-orange-700 rounded-xl transition-all duration-200 group">
+            <button type="button" data-toggle-submenu="empresa" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-orange-50 hover:text-orange-700 rounded-xl transition-all duration-200 group">
                 <div class="flex items-center space-x-4">
                     <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors" data-icon="building">
                         <i data-lucide="building" class="w-5 h-5" data-icon="building"></i>
@@ -249,7 +256,9 @@
                         <p class="text-xs ">Configuración empresarial</p>
                     </div>
                 </div>
-                <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200" id="empresa-arrow" style="transform: {{ request()->routeIs('empresa.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}"></i>
+                <span id="empresa-arrow" class="inline-flex transition-transform duration-200" style="transform: {{ request()->routeIs('empresa.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}">
+                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                </span>
             </button>
             <div id="empresa-submenu" class="{{ request()->routeIs('empresa.*') ? '' : 'hidden' }} ml-4 mt-2 space-y-2">
                 @if($isGlobalAdmin || $empresaHasModulo('empresa'))
@@ -278,7 +287,7 @@
         @if(!$isGlobalOutsideEmpresa && $hasPerm($effectivePermissions, 'configuracion') && ($empresaHasModulo('exportar') || $empresaHasModulo('hoja_vida') || $empresaHasModulo('inspeccion') || $isGlobalAdmin))
         <div class="relative group">
             <div class="absolute -left-2 top-0 bottom-0 w-1 bg-pink-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <button onclick="toggleSubmenu('config')" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-pink-50 hover:text-pink-700 rounded-xl transition-all duration-200 group">
+            <button type="button" data-toggle-submenu="config" class="sidebar-item w-full flex items-center justify-between px-4 py-4 hover:bg-pink-50 hover:text-pink-700 rounded-xl transition-all duration-200 group">
                 <div class="flex items-center space-x-4">
                     <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors" data-icon="settings">
                         <i data-lucide="settings" class="w-5 h-5" data-icon="settings"></i>
@@ -288,19 +297,15 @@
                         <p class="text-xs ">Formatos y exportación</p>
                     </div>
                 </div>
-                <i data-lucide="chevron-down" class="w-5 h-5 transition-transform duration-200" id="config-arrow" style="transform: {{ request()->routeIs('formatos.*') || request()->routeIs('exportar.*') || request()->routeIs('hoja-vida.*') || request()->routeIs('inspeccion.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}"></i>
+                <span id="config-arrow" class="inline-flex transition-transform duration-200" style="transform: {{ request()->routeIs('formatos.*') || request()->routeIs('exportar.*') || request()->routeIs('hoja-vida.*') || request()->routeIs('inspeccion.*') ? 'rotate(180deg)' : 'rotate(0deg)' }}">
+                    <i data-lucide="chevron-down" class="w-5 h-5"></i>
+                </span>
             </button>
             <div id="config-submenu" class="{{ request()->routeIs('formatos.*') || request()->routeIs('exportar.*') || request()->routeIs('hoja-vida.*') || request()->routeIs('inspeccion.*') ? '' : 'hidden' }} ml-4 mt-2 space-y-2">
                 @if($isGlobalAdmin || $empresaHasModulo('exportar') || $empresaHasModulo('hoja_vida') || $empresaHasModulo('inspeccion'))
                 <a href="{{ route('formatos.index') }}" class="sidebar-item flex items-center px-4 py-3 {{ request()->routeIs('formatos.*') ? 'sidebar-item--active' : '' }} rounded-lg transition-all duration-200">
                     <div class="menu-icon-box menu-icon-box-sub w-7 h-7 rounded-md flex items-center justify-center shrink-0 mr-3" data-icon="file-text"><i data-lucide="file-text" class="w-3.5 h-3.5" data-icon="file-text"></i></div>
                     <span class="font-medium">Formatos</span>
-                </a>
-                @endif
-                @if($empresaHasModulo('hoja_vida'))
-                <a href="{{ route('hoja-vida.index') }}" class="sidebar-item flex items-center px-4 py-3 {{ request()->routeIs('hoja-vida.*') ? 'sidebar-item--active' : '' }} rounded-lg transition-all duration-200">
-                    <div class="menu-icon-box menu-icon-box-sub w-7 h-7 rounded-md flex items-center justify-center shrink-0 mr-3" data-icon="file-text"><i data-lucide="file-text" class="w-3.5 h-3.5" data-icon="file-text"></i></div>
-                    <span class="font-medium">Hoja de Vida</span>
                 </a>
                 @endif
                 @if($empresaHasModulo('inspeccion'))
@@ -386,21 +391,6 @@
 
         <div class="border-t border-gray-200 pt-4 mt-4">
             <p class="text-xs font-semibold  uppercase tracking-wider mb-3 px-4">Sistema</p>
-
-            <div class="relative group">
-                <div class="absolute -left-2 top-0 bottom-0 w-1 bg-indigo-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                <a href="{{ route('gemini.index') }}" class="sidebar-item w-full flex items-center px-4 py-4 {{ request()->routeIs('gemini.*') ? 'sidebar-item--active' : '' }} rounded-xl transition-all duration-200 group">
-                    <div class="flex items-center space-x-4">
-<div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors" data-icon="sparkles">
-                        <i data-lucide="sparkles" class="w-5 h-5" data-icon="sparkles"></i>
-                    </div>
-                        <div class="text-left">
-                            <span class="font-semibold text-lg">Asistente</span>
-                            <p class="text-xs ">Pregunta por SAMS (voz y texto)</p>
-                        </div>
-                    </div>
-                </a>
-            </div>
             
             <div class="relative group">
                 <div class="absolute -left-2 top-0 bottom-0 w-1 bg-gray-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>

@@ -178,27 +178,42 @@
 </div>
 
 <!-- Create Cargo Modal -->
-<div id="createCargoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Crear Nuevo Cargo</h3>
-        <form action="{{ route('cargos.store') }}" method="POST">
-            @csrf
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Cargo *</label>
-                    <input type="text" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+<div id="createCargoModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="createCargoTitle">
+    <div class="pw-modal-content pw-modal-md">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="briefcase" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                    <h3 id="createCargoTitle" class="pw-modal-title">Crear cargo</h3>
+                    <p class="pw-modal-subtitle">Registra un cargo para asignarlo a los usuarios.</p>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideCreateCargoModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <button type="button" class="pw-modal-close" onclick="hideCreateCargoModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="{{ route('cargos.store') }}" method="POST">
+            @csrf
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del cargo <span class="pw-req">*</span></label>
+                        <input type="text" name="name" required class="w-full">
+                    </div>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea name="description" rows="3" class="w-full"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideCreateCargoModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Crear Cargo
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Crear cargo
                 </button>
             </div>
         </form>
@@ -206,28 +221,43 @@
 </div>
 
 <!-- Edit Cargo Modal -->
-<div id="editCargoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Cargo</h3>
+<div id="editCargoModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="editCargoTitle">
+    <div class="pw-modal-content pw-modal-md">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="briefcase" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="editCargoTitle" class="pw-modal-title">Editar cargo</h3>
+                    <p class="pw-modal-subtitle">Actualiza el nombre o la descripción del cargo.</p>
+                </div>
+            </div>
+            <button type="button" class="pw-modal-close" onclick="hideEditCargoModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
         <form id="editCargoForm" method="POST">
             @csrf
             @method('PUT')
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Cargo *</label>
-                    <input type="text" id="editNombre" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea id="editDescripcion" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del cargo <span class="pw-req">*</span></label>
+                        <input type="text" id="editNombre" name="name" required class="w-full">
+                    </div>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea id="editDescripcion" name="description" rows="3" class="w-full"></textarea>
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideEditCargoModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideEditCargoModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Actualizar Cargo
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Actualizar cargo
                 </button>
             </div>
         </form>
@@ -236,7 +266,7 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+@vite('resources/js/charts.js')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const waitChart = function(cb) {

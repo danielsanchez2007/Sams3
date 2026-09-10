@@ -4,6 +4,64 @@
 @section('header-title', 'Gestión de Empresa')
 @section('header-subtitle', 'Administración de Empresa, Sedes y Bodegas')
 
+@section('styles')
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css">
+<style>
+    #localizacionMap { z-index: 0; }
+    .loc-map-info { min-width: 180px; }
+    .loc-map-info-title { font-weight: 700; color: #0f172a; margin-bottom: 4px; }
+    .loc-map-info-meta, .loc-map-info-address { font-size: 12px; color: #475569; }
+    .loc-map-info-link a { font-size: 12px; color: #2563eb; }
+
+    .empresa-tabs {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        padding: 0.3rem;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.75rem;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+    }
+    .empresa-tabs .empresa-tab-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        margin: 0;
+        padding: 0.55rem 0.95rem;
+        border: 0;
+        border-radius: 0.55rem;
+        background: transparent;
+        color: #334155;
+        font-size: 0.875rem;
+        font-weight: 600;
+        line-height: 1.1;
+        box-shadow: none;
+        cursor: pointer;
+        transition: background-color .15s ease, color .15s ease;
+    }
+    .empresa-tabs .empresa-tab-btn i,
+    .empresa-tabs .empresa-tab-btn svg {
+        width: 1rem;
+        height: 1rem;
+        color: currentColor;
+        stroke: currentColor;
+    }
+    .empresa-tabs .empresa-tab-btn:hover {
+        background: #f1f5f9;
+        color: #0f172a;
+        border-color: transparent;
+        box-shadow: none;
+    }
+    .empresa-tabs .empresa-tab-btn.is-active {
+        background: var(--sams-btn-primary-bg, #1e3a8a);
+        color: #ffffff;
+        border-color: transparent;
+        box-shadow: none;
+    }
+</style>
+@endsection
+
 @section('header-actions')
 <div class="flex flex-wrap items-center gap-2">
     @if(!($soloMiEmpresa ?? false))
@@ -60,18 +118,17 @@
     </div>
     @endif
 
-    <div class="pw-card bg-white rounded-xl shadow-lg p-4 mb-6">
-        <div class="flex space-x-2">
-            <button id="tabLocalizacion" onclick="openTab('localizacion')" class="empresa-tab-btn">
+    <nav class="empresa-tabs mb-6" role="tablist" aria-label="Secciones de empresa">
+            <button type="button" id="tabLocalizacion" onclick="openTab('localizacion')" class="empresa-tab-btn">
                 <i data-lucide="map-pinned" class="w-4 h-4"></i> Localización
             </button>
-            <button id="tabEmpresa" onclick="openTab('empresa')" class="empresa-tab-btn">
+            <button type="button" id="tabEmpresa" onclick="openTab('empresa')" class="empresa-tab-btn">
                 <i data-lucide="building-2" class="w-4 h-4"></i> Empresa
             </button>
-            <button id="tabSede" onclick="openTab('sede')" class="empresa-tab-btn">
+            <button type="button" id="tabSede" onclick="openTab('sede')" class="empresa-tab-btn">
                 <i data-lucide="map-pin" class="w-4 h-4"></i> Sede
             </button>
-            <button id="tabBodega" onclick="openTab('bodega')" class="empresa-tab-btn">
+            <button type="button" id="tabBodega" onclick="openTab('bodega')" class="empresa-tab-btn">
                 <i data-lucide="warehouse" class="w-4 h-4"></i> Bodegas
             </button>
             @if($mostrarPestanaOficinas ?? false)
@@ -82,8 +139,7 @@
             <button type="button" id="tabEspacio" onclick="openTab('espacio')" class="empresa-tab-btn">
                 <i data-lucide="armchair" class="w-4 h-4"></i> Espacio
             </button>
-        </div>
-    </div>
+    </nav>
 
     <div id="contentLocalizacion">
         <div class="pw-card bg-white rounded-xl shadow-lg p-6">
@@ -158,8 +214,8 @@
                 </div>
 
                 <div class="lg:col-span-9">
-                    <div id="localizacionMap" class="w-full h-[56vh] min-h-[320px] rounded-xl border border-gray-200 flex items-center justify-center text-sm text-gray-500 bg-white">
-                        Cargando mapa...
+                    <div id="localizacionMap" class="w-full h-[56vh] min-h-[320px] rounded-xl border border-gray-200 bg-white">
+                        <div class="h-full flex items-center justify-center text-sm text-gray-500">Cargando mapa...</div>
                     </div>
                 </div>
             </div>
@@ -250,23 +306,19 @@
                         @if($empresa->pais)<div class="flex items-center gap-2 text-gray-600"><i data-lucide="globe" class="w-4 h-4"></i>{{ $empresa->pais }}</div>@endif
                         @if($empresa->direccion)<div class="flex items-center gap-2 text-gray-600"><i data-lucide="home" class="w-4 h-4"></i>{{ $empresa->direccion }}</div>@endif
                         @if($empresa->ciudad)<div class="flex items-center gap-2 text-gray-600"><i data-lucide="building-2" class="w-4 h-4"></i>{{ $empresa->ciudad }}</div>@endif
-                        @if($empresa->google_maps_url)
-                        <a href="{{ $empresa->google_maps_url }}" target="_blank" class="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm"><i data-lucide="map" class="w-4 h-4"></i>Google Maps</a>
-                        @endif
-                        @if($empresa->google_maps_url || $empresa->direccion)
-                        @php
-                            $empresaMapaQuery = trim(implode(', ', array_filter([
+                        @include('admin.empresa.partials.ubicacion-preview', [
+                            'mapsUrl' => $empresa->google_maps_url,
+                            'lat' => $empresa->latitud,
+                            'lng' => $empresa->longitud,
+                            'query' => trim(implode(', ', array_filter([
                                 $empresa->direccion,
                                 $empresa->ciudad,
                                 $empresa->municipio,
                                 $empresa->departamento,
                                 $empresa->pais,
-                            ])));
-                        @endphp
-                        <div class="rounded-lg overflow-hidden border border-gray-200 max-w-xl">
-                            <iframe class="w-full h-28" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q={{ urlencode($empresaMapaQuery) }}&output=embed"></iframe>
-                        </div>
-                        @endif
+                            ]))),
+                            'heightClass' => 'h-28',
+                        ])
                     </div>
                     <div class="p-3 space-y-2 bg-slate-50/70">
                         <p class="text-xs font-bold uppercase tracking-wide text-gray-500 px-1">Sedes</p>
@@ -408,21 +460,17 @@
                     <div class="bg-white rounded-lg p-3 border border-gray-100 text-sm text-gray-600 space-y-1">
                         @if($sede->pais)<div class="flex items-center gap-2"><i data-lucide="globe" class="w-4 h-4"></i>{{ $sede->pais }}</div>@endif
                         @if($sede->direccion)<div class="flex items-center gap-2"><i data-lucide="home" class="w-4 h-4"></i>{{ $sede->direccion }}</div>@endif
-                        @if($sede->google_maps_url)<a href="{{ $sede->google_maps_url }}" target="_blank" class="text-blue-600 hover:underline inline-flex items-center gap-1"><i data-lucide="map" class="w-4 h-4"></i>Google Maps</a>@endif
-                        @if($sede->google_maps_url || $sede->direccion)
-                        @php
-                            $sedeMapaQueryTab = trim(implode(', ', array_filter([
+                        @include('admin.empresa.partials.ubicacion-preview', [
+                            'mapsUrl' => $sede->google_maps_url,
+                            'query' => trim(implode(', ', array_filter([
                                 $sede->direccion,
                                 $sede->ciudad,
                                 $sede->municipio,
                                 $sede->departamento,
                                 $sede->pais,
-                            ])));
-                        @endphp
-                        <div class="rounded-lg overflow-hidden border border-gray-200 max-w-xl mt-2">
-                            <iframe class="w-full h-24" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q={{ urlencode($sedeMapaQueryTab) }}&output=embed"></iframe>
-                        </div>
-                        @endif
+                            ]))),
+                            'heightClass' => 'h-24',
+                        ])
                     </div>
                     <div>
                         <h4 class="text-xs font-bold uppercase tracking-wide text-gray-500 mb-2 flex items-center gap-1"><i data-lucide="warehouse" class="w-3.5 h-3.5"></i> Bodegas</h4>
@@ -534,32 +582,17 @@
                         <span>{{ $bodega->direccion }}</span>
                     </div>
                     @endif
-                    @if($bodega->google_maps_url)
-                    <div class="flex items-center text-sm text-blue-600">
-                        <i data-lucide="map" class="w-4 h-4 mr-2"></i>
-                        <a href="{{ $bodega->google_maps_url }}" target="_blank" class="hover:underline">Ver en Google Maps</a>
-                    </div>
-                    @endif
-
-                    @if($bodega->google_maps_url || $bodega->direccion)
-                    @php
-                        $bodegaMapaQuery = trim(implode(', ', array_filter([
+                    @include('admin.empresa.partials.ubicacion-preview', [
+                        'mapsUrl' => $bodega->google_maps_url,
+                        'query' => trim(implode(', ', array_filter([
                             $bodega->direccion,
                             $bodega->ciudad,
                             $bodega->municipio,
                             $bodega->departamento,
                             $bodega->pais,
-                        ])));
-                    @endphp
-                    <div class="mt-3 rounded-lg overflow-hidden border border-gray-200">
-                        <iframe
-                            class="w-full h-28"
-                            loading="lazy"
-                            referrerpolicy="no-referrer-when-downgrade"
-                            src="https://www.google.com/maps?q={{ urlencode($bodegaMapaQuery) }}&output=embed">
-                        </iframe>
-                    </div>
-                    @endif
+                        ]))),
+                        'heightClass' => 'h-28',
+                    ])
                 </div>
 
                 <div class="flex items-center justify-between text-sm">
@@ -719,18 +752,18 @@
 
 <!-- Create Empresa Modal -->
 <div id="createEmpresaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-lg bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Registrar Nueva Empresa</h3>
         <form action="{{ route('empresa.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                    <input type="text" name="nombre" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <input type="text" name="nombre" value="{{ old('nombre') }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">NIT *</label>
-                    <input type="text" name="nit" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <input type="text" name="nit" value="{{ old('nit') }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Prefijo (automático)</label>
@@ -739,8 +772,8 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Color (paleta)</label>
                     <div class="flex items-center gap-2">
-                        <input type="color" id="createEmpresaColorPicker" value="#f97316" class="h-10 w-16 p-1 border border-gray-300 rounded-lg bg-white cursor-pointer">
-                        <input type="text" id="createEmpresaColorHex" name="color_primario" maxlength="20" placeholder="#F97316" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                        <input type="color" id="createEmpresaColorPicker" value="{{ old('color_primario', '#F97316') }}" class="h-10 w-16 p-1 border border-gray-300 rounded-lg bg-white cursor-pointer">
+                        <input type="text" id="createEmpresaColorHex" name="color_primario" value="{{ old('color_primario', '#F97316') }}" maxlength="20" placeholder="#F97316" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                     </div>
                     <div class="empresa-color-dots">
                         <span id="createDotPrimary" class="empresa-color-dot empresa-dot-primary"></span>
@@ -774,16 +807,16 @@
                     <input type="text" name="direccion" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">URL Google Maps (opcional)</label>
-                    <input type="url" id="createEmpresaMapsUrl" name="google_maps_url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
-                    <p class="text-xs text-gray-500 mt-1">Si escribes enlace de Maps, latitud/longitud dejan de ser obligatorias.</p>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Enlace de Google Maps (opcional si pones latitud y longitud)</label>
+                    <input type="text" id="createEmpresaMapsUrl" name="google_maps_url" placeholder="https://maps.app.goo.gl/..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <p class="text-xs text-gray-500 mt-1">Puedes pegar solo el enlace de Maps <strong>o</strong> escribir latitud y longitud. La altitud no es obligatoria.</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Latitud</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Latitud (opcional si hay enlace)</label>
                     <input type="number" step="0.0000001" id="createEmpresaLatitud" name="latitud" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Longitud</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Longitud (opcional si hay enlace)</label>
                     <input type="number" step="0.0000001" id="createEmpresaLongitud" name="longitud" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 </div>
                 <div>
@@ -818,7 +851,8 @@
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Foto de la empresa (opcional)</label>
-                    <input type="file" name="foto_empresa" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="file" name="foto_empresa" accept="image/jpeg,image/png,image/webp" class="js-empresa-image w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <p class="text-xs text-gray-500 mt-1">JPG, PNG o WebP. Máximo 10 MB; si pesa mucho, el sistema la optimizará al guardar.</p>
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-6">
@@ -831,11 +865,12 @@
 
 <!-- Edit Empresa Modal -->
 <div id="editEmpresaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-lg bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Empresa</h3>
         <form id="editEmpresaForm" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
+            <input type="hidden" name="empresa_id" id="editEmpresaId" value="{{ old('empresa_id') }}">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
@@ -887,19 +922,20 @@
                     <input type="text" id="editEmpresaDireccion" name="direccion" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
                 </div>
                 <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">URL Google Maps (opcional)</label>
-                    <input type="url" id="editEmpresaMaps" name="google_maps_url" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Enlace de Google Maps (opcional si pones latitud y longitud)</label>
+                    <input type="text" id="editEmpresaMaps" name="google_maps_url" placeholder="https://maps.app.goo.gl/..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
+                    <p class="text-xs text-gray-500 mt-1">Puedes pegar solo el enlace de Maps <strong>o</strong> escribir latitud y longitud. La altitud no es obligatoria.</p>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Latitud</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Latitud (opcional si hay enlace)</label>
                     <input type="number" step="0.0000001" id="editEmpresaLatitud" name="latitud" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Longitud</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Longitud (opcional si hay enlace)</label>
                     <input type="number" step="0.0000001" id="editEmpresaLongitud" name="longitud" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Altitud</label>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Altitud (opcional)</label>
                     <input type="number" step="0.01" id="editEmpresaAltitud" name="altitud" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
                 </div>
                 <div>
@@ -922,7 +958,8 @@
                 </div>
                 <div class="md:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Foto de la empresa (opcional)</label>
-                    <input type="file" name="foto_empresa" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <input type="file" name="foto_empresa" accept="image/jpeg,image/png,image/webp" class="js-empresa-image w-full px-3 py-2 border border-gray-300 rounded-lg">
+                    <p class="text-xs text-gray-500 mt-1">JPG, PNG o WebP. Máximo 10 MB; si pesa mucho, el sistema la optimizará al guardar.</p>
                 </div>
             </div>
             <div class="flex justify-end space-x-3 mt-6">
@@ -935,7 +972,7 @@
 
 <!-- Asignar Módulos Empresa Modal -->
 <div id="modulosEmpresaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-md bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Asignar módulos a empresa</h3>
         <form id="modulosEmpresaForm" method="POST">
             @csrf
@@ -1144,7 +1181,7 @@
 
 <!-- Asignar usuario a empresa Modal -->
 <div id="asignarUsuarioEmpresaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-sm bg-white rounded-xl p-6 w-full max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-2">Asignar usuario a empresa</h3>
         <p id="asignarUsuarioEmpresaNombre" class="text-sm text-gray-600 mb-4"></p>
         <form id="asignarUsuarioEmpresaForm" method="POST">
@@ -1164,11 +1201,11 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
-                    <input type="password" name="password" required minlength="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Mínimo 8 caracteres">
+                    <input type="password" name="password" required minlength="10" maxlength="72" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Mínimo 10 caracteres" data-pw-meter="required">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña *</label>
-                    <input type="password" name="password_confirmation" required minlength="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <input type="password" name="password_confirmation" required minlength="10" maxlength="72" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500">
                 </div>
             </div>
             <p class="text-xs text-gray-500 mt-3">
@@ -1186,7 +1223,7 @@
 
 <!-- Create Sede Modal -->
 <div id="createSedeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-lg bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Registrar Nueva Sede</h3>
         <form action="{{ route('sedes.store') }}" method="POST">
             @csrf
@@ -1242,7 +1279,7 @@
 
 <!-- Edit Sede Modal -->
 <div id="editSedeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-lg bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Sede</h3>
         <form id="editSedeForm" method="POST">
             @csrf
@@ -1299,7 +1336,7 @@
 
 <!-- Create Bodega Modal -->
 <div id="createBodegaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-lg bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Registrar Nueva Bodega</h3>
         <form action="{{ route('bodegas.store') }}" method="POST">
             @csrf
@@ -1364,7 +1401,7 @@
 
 <!-- Edit Bodega Modal -->
 <div id="editBodegaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-lg bg-white rounded-xl p-6 w-full max-h-[80vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Bodega</h3>
         <form id="editBodegaForm" method="POST">
             @csrf
@@ -1431,7 +1468,7 @@
 @if($mostrarPestanaOficinas ?? false)
 <!-- Create Oficina Modal -->
 <div id="createOficinaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-md bg-white rounded-xl p-6 w-full max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Nueva oficina</h3>
         <form action="{{ route('oficinas.store') }}" method="POST" class="space-y-4">
             @csrf
@@ -1466,7 +1503,7 @@
 
 <!-- Edit Oficina Modal -->
 <div id="editOficinaModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-md bg-white rounded-xl p-6 w-full max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar oficina</h3>
         <form id="editOficinaForm" method="POST" class="space-y-4">
             @csrf
@@ -1503,7 +1540,7 @@
 
 <!-- Create Espacio Modal -->
 <div id="createEspacioModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-md bg-white rounded-xl p-6 w-full max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Nuevo espacio</h3>
         <form action="{{ route('espacios.store') }}" method="POST" class="space-y-4">
             @csrf
@@ -1538,7 +1575,7 @@
 
 <!-- Edit Espacio Modal -->
 <div id="editEspacioModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+    <div class="pw-modal-content pw-modal-md bg-white rounded-xl p-6 w-full max-h-[90vh] overflow-y-auto">
         <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar espacio</h3>
         <form id="editEspacioForm" method="POST" class="space-y-4">
             @csrf
@@ -1575,9 +1612,7 @@
 @endsection
 
 @section('scripts')
-@if(!empty($googleMapsApiKey))
-<script src="https://maps.googleapis.com/maps/api/js?key={{ $googleMapsApiKey }}&callback=__onGoogleMapsReady" async defer></script>
-@endif
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 const __GEO_COUNTRY_STATES_CACHE_KEY = 'sams3_country_states_v1';
 const __GEO_CITIES_CACHE_PREFIX = 'sams3_cities_v1:';
@@ -1772,6 +1807,9 @@ function openTab(tab) {
 
     if (tab === 'localizacion') {
         initLocalizacionMap();
+        if (__LOC_MAP && typeof __LOC_MAP.invalidateSize === 'function') {
+            setTimeout(function () { __LOC_MAP.invalidateSize(); }, 80);
+        }
     }
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
@@ -1830,6 +1868,49 @@ function appUrl(path) {
 
 function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+}
+
+function parseCoordsFromMapsUrl(url) {
+    const s = String(url || '');
+    let m = s.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+    if (m) return { lat: m[1], lng: m[2] };
+    m = s.match(/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/);
+    if (m) return { lat: m[1], lng: m[2] };
+    m = s.match(/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i);
+    if (m) return { lat: m[1], lng: m[2] };
+    return null;
+}
+
+async function fillCoordsFromMapsInput(mapsId, latId, lngId) {
+    const maps = typeof mapsId === 'string' ? document.getElementById(mapsId) : mapsId;
+    const lat = typeof latId === 'string' ? document.getElementById(latId) : latId;
+    const lng = typeof lngId === 'string' ? document.getElementById(lngId) : lngId;
+    if (!maps || !lat || !lng) return;
+    const url = (maps.value || '').trim();
+    if (!url) return;
+    if ((lat.value || '').trim() !== '' && (lng.value || '').trim() !== '') return;
+
+    let coords = parseCoordsFromMapsUrl(url);
+    if (!coords) {
+        try {
+            const res = await fetch(@json(route('empresa.geocode')), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': csrfToken()
+                },
+                body: JSON.stringify({ maps_url: url })
+            });
+            const json = await res.json();
+            if (json && json.success && json.data) {
+                coords = { lat: json.data.lat, lng: json.data.lng };
+            }
+        } catch (e) {}
+    }
+    if (!coords) return;
+    lat.value = coords.lat;
+    lng.value = coords.lng;
 }
 
 async function parseJsonResponse(response) {
@@ -2007,11 +2088,14 @@ function editEmpresa(id) {
             document.getElementById('editEmpresaNombre').value = data.nombre || '';
             document.getElementById('editEmpresaNit').value = data.nit || '';
             document.getElementById('editEmpresaPrefijo').value = data.prefijo || '';
-            document.getElementById('editEmpresaColor').value = data.color_primario || '';
+            const primaryColor = normalizeHexColor(data.color_primario || '#f97316');
+            document.getElementById('editEmpresaColor').value = primaryColor;
             const editColorPicker = document.getElementById('editEmpresaColorPicker');
             if (editColorPicker) {
-                editColorPicker.value = normalizeHexColor(data.color_primario || '#f97316');
+                editColorPicker.value = primaryColor;
             }
+            const editEmpresaId = document.getElementById('editEmpresaId');
+            if (editEmpresaId) editEmpresaId.value = id;
             document.getElementById('editEmpresaPais').value = data.pais || '';
             document.getElementById('editEmpresaDepartamento').value = data.departamento || '';
             document.getElementById('editEmpresaMunicipio').value = data.municipio || '';
@@ -2021,6 +2105,7 @@ function editEmpresa(id) {
             document.getElementById('editEmpresaLatitud').value = data.latitud || '';
             document.getElementById('editEmpresaLongitud').value = data.longitud || '';
             document.getElementById('editEmpresaAltitud').value = data.altitud || '';
+            fillCoordsFromMapsInput('editEmpresaMaps', 'editEmpresaLatitud', 'editEmpresaLongitud');
             document.getElementById('editEmpresaColorSec1').value = normalizeHexColor(data.color_secundario_1 || '#67e8f9');
             document.getElementById('editEmpresaColorSec2').value = normalizeHexColor(data.color_secundario_2 || '#075479');
             syncEmpresaPaletteDots('edit');
@@ -2337,6 +2422,36 @@ document.addEventListener('DOMContentLoaded', function() {
     bindEmpresaPalette('create');
     bindEmpresaPalette('edit');
 
+    function syncColorPairBeforeSubmit(form, pickerId, textId) {
+        if (!form) return;
+        form.addEventListener('submit', function () {
+            const picker = document.getElementById(pickerId);
+            const text = document.getElementById(textId);
+            if (!picker || !text) return;
+            if (!(text.value || '').trim()) {
+                text.value = normalizeHexColor(picker.value || '#f97316');
+            }
+        });
+    }
+    syncColorPairBeforeSubmit(document.querySelector('#createEmpresaModal form'), 'createEmpresaColorPicker', 'createEmpresaColorHex');
+    syncColorPairBeforeSubmit(document.getElementById('editEmpresaForm'), 'editEmpresaColorPicker', 'editEmpresaColor');
+
+    const EMPRESA_IMAGE_MAX_BYTES = 10 * 1024 * 1024;
+    document.querySelectorAll('.js-empresa-image').forEach(function (input) {
+        input.addEventListener('change', function () {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            if (file.size > EMPRESA_IMAGE_MAX_BYTES) {
+                if (typeof showNotification === 'function') {
+                    showNotification('La imagen supera 10 MB. Elige un archivo más liviano.', 'error');
+                } else {
+                    alert('La imagen supera 10 MB. Elige un archivo más liviano.');
+                }
+                input.value = '';
+            }
+        });
+    });
+
     function bindMapsVsCoords(mapsId, latId, lngId) {
         const maps = document.getElementById(mapsId);
         const lat = document.getElementById(latId);
@@ -2344,10 +2459,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!maps || !lat || !lng) return;
         const apply = () => {
             const hasMaps = (maps.value || '').trim().length > 0;
-            lat.required = !hasMaps;
-            lng.required = !hasMaps;
+            lat.required = false;
+            lng.required = false;
+            lat.removeAttribute('required');
+            lng.removeAttribute('required');
+            if (hasMaps) {
+                fillCoordsFromMapsInput(maps, lat, lng);
+            }
         };
         maps.addEventListener('input', apply);
+        maps.addEventListener('paste', function () { setTimeout(apply, 50); });
+        maps.addEventListener('blur', apply);
         apply();
     }
     bindMapsVsCoords('createEmpresaMapsUrl', 'createEmpresaLatitud', 'createEmpresaLongitud');
@@ -2367,12 +2489,44 @@ document.addEventListener('DOMContentLoaded', function() {
     openAsignarUsuarioEmpresa(@json(session('empresa_nueva_id')), @json(session('empresa_nueva_nombre')));
     @endif
 
+    @php
+        $empresaFormErrorKeys = ['nombre','nit','color_primario','foto_empresa','pais','departamento','ciudad','direccion','logo_principal_file','logo_secundario_file','latitud','longitud','google_maps_url','color_secundario_1','color_secundario_2','telefono','email','sitio_web'];
+        $reopenEmpresaForm = $errors->hasAny($empresaFormErrorKeys);
+    @endphp
+    @if($reopenEmpresaForm)
+    openTab('empresa');
+    @if(old('_method') === 'PUT' && old('empresa_id'))
+    (function () {
+        const id = @json((string) old('empresa_id'));
+        document.getElementById('editEmpresaNombre').value = @json(old('nombre', ''));
+        document.getElementById('editEmpresaNit').value = @json(old('nit', ''));
+        const primaryColor = normalizeHexColor(@json(old('color_primario', '#f97316')));
+        document.getElementById('editEmpresaColor').value = primaryColor;
+        const editColorPicker = document.getElementById('editEmpresaColorPicker');
+        if (editColorPicker) editColorPicker.value = primaryColor;
+        document.getElementById('editEmpresaPais').value = @json(old('pais', ''));
+        document.getElementById('editEmpresaDepartamento').value = @json(old('departamento', ''));
+        document.getElementById('editEmpresaMunicipio').value = @json(old('municipio', ''));
+        document.getElementById('editEmpresaCiudad').value = @json(old('ciudad', ''));
+        document.getElementById('editEmpresaDireccion').value = @json(old('direccion', ''));
+        document.getElementById('editEmpresaMaps').value = @json(old('google_maps_url', ''));
+        document.getElementById('editEmpresaLatitud').value = @json(old('latitud', ''));
+        document.getElementById('editEmpresaLongitud').value = @json(old('longitud', ''));
+        document.getElementById('editEmpresaAltitud').value = @json(old('altitud', ''));
+        document.getElementById('editEmpresaColorSec1').value = normalizeHexColor(@json(old('color_secundario_1', '#67e8f9')));
+        document.getElementById('editEmpresaColorSec2').value = normalizeHexColor(@json(old('color_secundario_2', '#075479')));
+        document.getElementById('editEmpresaId').value = id;
+        document.getElementById('editEmpresaForm').action = appUrl('/empresa/' + id);
+        syncEmpresaPaletteDots('edit');
+        showEditEmpresaModal();
+    })();
+    @else
+    showCreateEmpresaModal();
+    @endif
+    @else
     openTab('localizacion');
-    if (typeof google !== 'undefined' && google.maps) {
-        initLocalizacionMap();
-    } else {
-        __setLocalizacionMapState('Cargando Google Maps...');
-    }
+    @endif
+    initLocalizacionMap();
 });
 
 let __LOC_MAP = null;
@@ -2383,21 +2537,30 @@ let __LOC_COUNTS = null;
 
 function __setLocalizacionMapState(message) {
     const el = document.getElementById('localizacionMap');
-    if (!el) return;
-    el.classList.add('flex', 'items-center', 'justify-center', 'text-sm', 'text-gray-500', 'bg-white');
-    el.textContent = message;
+    if (!el || __LOC_MAP) return;
+    el.innerHTML = '<div class="h-full flex items-center justify-center text-sm text-gray-500">' + String(message || '') + '</div>';
 }
 
 function __clearLocalizacionMapState() {
     const el = document.getElementById('localizacionMap');
-    if (!el) return;
-    el.classList.remove('flex', 'items-center', 'justify-center', 'text-sm', 'text-gray-500', 'bg-white');
-    el.textContent = '';
+    if (!el || __LOC_MAP) return;
+    el.innerHTML = '';
 }
 
-window.__onGoogleMapsReady = function () {
-    initLocalizacionMap();
-};
+function __locCoords(it) {
+    const lat = Number(it.latitud);
+    const lng = Number(it.longitud);
+    if (isFinite(lat) && isFinite(lng) && !(lat === 0 && lng === 0)) {
+        return { lat: lat, lng: lng };
+    }
+    const fromUrl = parseCoordsFromMapsUrl(it.google_maps_url || '');
+    if (fromUrl) {
+        return { lat: Number(fromUrl.lat), lng: Number(fromUrl.lng) };
+    }
+    return null;
+}
+
+window.__onGoogleMapsReady = function () {};
 
 function __locFullAddress(item) {
     const parts = [item.direccion, item.ciudad, item.municipio, item.departamento, item.pais].filter(Boolean);
@@ -2430,28 +2593,28 @@ async function __locGeocode(address) {
     return json.data;
 }
 
-async function initLocalizacionMap() {
+function initLocalizacionMap() {
     if (__LOC_INITED) return;
-    if (typeof google === 'undefined' || !google.maps) {
-        __setLocalizacionMapState('Google Maps no está disponible en este momento.');
+    const el = document.getElementById('localizacionMap');
+    if (!el) return;
+    if (typeof L === 'undefined') {
+        __setLocalizacionMapState('No se pudo cargar el mapa.');
         return;
     }
 
     __LOC_INITED = true;
-
-    const el = document.getElementById('localizacionMap');
-    if (!el) return;
     __clearLocalizacionMapState();
 
-    __LOC_MAP = new google.maps.Map(el, {
-        center: { lat: 4.5709, lng: -74.2973 },
-        zoom: 5,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: true,
-    });
+    __LOC_MAP = L.map(el, {
+        zoomControl: true,
+    }).setView([4.5709, -74.2973], 6);
 
-    __LOC_INFO = new google.maps.InfoWindow();
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap',
+    }).addTo(__LOC_MAP);
+
+    setTimeout(function () { __LOC_MAP.invalidateSize(); }, 50);
 
     const baseItems = [];
 
@@ -2467,6 +2630,8 @@ async function initLocalizacionMap() {
             ciudad: @json($e->ciudad),
             direccion: @json($e->direccion),
             google_maps_url: @json($e->google_maps_url),
+            latitud: @json($e->latitud),
+            longitud: @json($e->longitud),
         });
     @endforeach
 
@@ -2699,10 +2864,10 @@ async function initLocalizacionMap() {
     aplicar();
 }
 
-async function renderLocalizacionMarkers(items) {
+function renderLocalizacionMarkers(items) {
     if (!__LOC_MAP) return;
 
-    __LOC_MARKERS.forEach(m => m.setMap(null));
+    __LOC_MARKERS.forEach(function (m) { __LOC_MAP.removeLayer(m); });
     __LOC_MARKERS = [];
 
     const tipo = document.getElementById('locFilterTipo')?.value || 'all';
@@ -2741,34 +2906,28 @@ async function renderLocalizacionMarkers(items) {
         return hay.includes(q);
     });
 
-    const bounds = new google.maps.LatLngBounds();
+    const colors = {
+        empresa: '#ea580c',
+        sede: '#2563eb',
+        oficina: '#16a34a',
+        bodega: '#7c3aed',
+    };
+    const bounds = [];
     let count = 0;
 
     for (const it of filtered) {
-        const address = __locFullAddress(it);
-        if (!address) continue;
-
-        const coords = await __locGeocode(address);
+        const coords = __locCoords(it);
         if (!coords) continue;
 
-        const pos = { lat: Number(coords.lat), lng: Number(coords.lng) };
-        if (!isFinite(pos.lat) || !isFinite(pos.lng)) continue;
-
-        const iconUrl = it.tipo === 'empresa'
-            ? 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png'
-            : (it.tipo === 'sede'
-                ? 'https://maps.google.com/mapfiles/ms/icons/blue-dot.png'
-                : (it.tipo === 'oficina'
-                    ? 'https://maps.google.com/mapfiles/ms/icons/green-dot.png'
-                    : 'https://maps.google.com/mapfiles/ms/icons/purple-dot.png'));
-
-        const marker = new google.maps.Marker({
-            position: pos,
-            map: __LOC_MAP,
-            title: it.nombre,
-            label: it.tipo === 'empresa' ? 'E' : (it.tipo === 'sede' ? 'S' : (it.tipo === 'oficina' ? 'O' : 'B')),
-            icon: { url: iconUrl }
-        });
+        const address = __locFullAddress(it);
+        const color = colors[it.tipo] || '#334155';
+        const marker = L.circleMarker([coords.lat, coords.lng], {
+            radius: 9,
+            color: color,
+            weight: 2,
+            fillColor: color,
+            fillOpacity: 0.85,
+        }).addTo(__LOC_MAP);
 
         const sedesCount = it.tipo === 'empresa' ? (__LOC_COUNTS?.empresaToSedes?.[it.empresa_id] || 0) : null;
         const bodegasCountEmpresa = it.tipo === 'empresa' ? (__LOC_COUNTS?.empresaToBodegas?.[it.empresa_id] || 0) : null;
@@ -2781,30 +2940,16 @@ async function renderLocalizacionMarkers(items) {
                 <div class="loc-map-info-title">${it.nombre || ''}</div>
                 ${it.tipo === 'empresa' ? `<div class="loc-map-info-meta">Sedes: <b>${sedesCount}</b> · Bodegas: <b>${bodegasCountEmpresa}</b> · Oficinas: <b>${oficinasCountEmpresa}</b></div>` : ''}
                 ${it.tipo === 'sede' ? `<div class="loc-map-info-meta">Bodegas: <b>${bodegasCountSede}</b> · Oficinas: <b>${oficinasCountSede}</b></div>` : ''}
-                ${it.tipo === 'oficina' ? `<div class="loc-map-info-oficina">Oficina</div>` : ''}
+                ${it.tipo === 'oficina' ? `<div class="loc-map-info-meta">Oficina</div>` : ''}
                 ${it.empresa_nombre ? `<div class="loc-map-info-meta">${it.empresa_nombre}</div>` : ''}
                 ${it.sede_nombre ? `<div class="loc-map-info-meta">${it.sede_nombre}</div>` : ''}
-                <div class="loc-map-info-address">${address}</div>
+                ${address ? `<div class="loc-map-info-address">${address}</div>` : ''}
                 ${it.google_maps_url ? `<div class="loc-map-info-link"><a href="${it.google_maps_url}" target="_blank">Ver en Google Maps</a></div>` : ''}
             </div>
         `;
-
-        marker.addListener('mouseover', function() {
-            __LOC_INFO.setContent(html);
-            __LOC_INFO.open(__LOC_MAP, marker);
-        });
-
-        marker.addListener('mouseout', function() {
-            __LOC_INFO.close();
-        });
-
-        marker.addListener('click', function() {
-            __LOC_INFO.setContent(html);
-            __LOC_INFO.open(__LOC_MAP, marker);
-        });
-
+        marker.bindPopup(html);
         __LOC_MARKERS.push(marker);
-        bounds.extend(marker.getPosition());
+        bounds.push([coords.lat, coords.lng]);
         count++;
     }
 
@@ -2812,7 +2957,9 @@ async function renderLocalizacionMarkers(items) {
     if (countEl) countEl.textContent = String(count);
 
     if (count > 0) {
-        __LOC_MAP.fitBounds(bounds);
+        __LOC_MAP.fitBounds(bounds, { padding: [28, 28], maxZoom: 14 });
+    } else {
+        __LOC_MAP.setView([4.5709, -74.2973], 6);
     }
 }
 </script>

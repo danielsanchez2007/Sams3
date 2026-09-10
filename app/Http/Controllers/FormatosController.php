@@ -2,139 +2,131 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\HojaVidaPlantilla;
 use App\Models\ClaseEquipo;
 use App\Models\Equipo;
-use App\Models\HojaVidaDocumento;
-use App\Support\UploadedFileStorage;
+use App\Services\HojaVidaAutoFields;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 
 class FormatosController extends Controller
 {
     public function index(Request $request)
     {
-        $this->assertCanViewModule('hoja_vida');
-        $empresaId = \App\Services\EmpresaContext::empresaId() ?? auth()->user()?->empresa_id;
+        $this->ensureCanViewFormatos();
+        $empresaId = $this->resolveTenantEmpresaId();
+
         $clases = ClaseEquipo::query()
             ->with('tipoEquipo')
+            ->withCount(['equipos as equipos_activos_count' => fn ($q) => $q->where('activo', true)])
             ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
             ->orderBy('nombre')
             ->get(['id', 'tipo_equipo_id', 'nombre']);
 
-        $plantillas = HojaVidaPlantilla::query()
-            ->whereNotNull('clase_equipo_id')
-            ->when($empresaId, fn ($q) => $q->whereHas('claseEquipo', fn ($c) => $c->where('empresa_id', $empresaId)))
-            ->with(['tipoEquipo', 'claseEquipo'])
-            ->orderByDesc('id')
-            ->get();
-
-        return view('admin.formatos.index', compact('clases', 'plantillas'));
+        return view('admin.formatos.index', compact('clases'));
     }
 
-    public function store(Request $request)
+    public function clase(ClaseEquipo $clase)
     {
-        $this->assertCanEditModule('hoja_vida');
-        $request->validate([
-            'clase_equipo_id' => ['required', 'integer', 'exists:clase_equipos,id'],
-            'plantilla_excel' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+        $this->ensureCanViewFormatos();
+        $this->ensureClaseTenant($clase);
+
+        $equipos = Equipo::query()
+            ->with(['empresa', 'sede', 'bodega', 'imagenes'])
+            ->where('activo', true)
+            ->where('clase_equipo_id', $clase->id)
+            ->orderByRaw("CASE WHEN codigo LIKE 'IN-%' THEN CAST(SUBSTRING(codigo,4) AS UNSIGNED) END ASC")
+            ->orderBy('id')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.formatos.clase', compact('clase', 'equipos'));
+    }
+
+    public function show(ClaseEquipo $clase, Equipo $equipo)
+    {
+        $this->ensureCanViewFormatos();
+        $this->ensureEquipoClase($clase, $equipo);
+
+        return view('admin.formatos.show', compact('clase', 'equipo'));
+    }
+
+    public function html(Request $request, ClaseEquipo $clase, Equipo $equipo)
+    {
+        $this->ensureCanViewFormatos();
+        $this->ensureEquipoClase($clase, $equipo);
+
+        $html = HojaVidaAutoFields::renderHtml($equipo, false, true);
+
+        return response($html, 200, [
+            'Content-Type' => 'text/html; charset=utf-8',
         ]);
-
-        $empresaId = \App\Services\EmpresaContext::empresaId() ?? auth()->user()?->empresa_id;
-        $clase = ClaseEquipo::query()->with('tipoEquipo')->whereKey($request->integer('clase_equipo_id'))->firstOrFail();
-
-        if ($empresaId && (int) $clase->empresa_id !== (int) $empresaId) {
-            abort(403, 'No puedes asignar formato a una clase de otra empresa.');
-        }
-
-        $file = $request->file('plantilla_excel');
-        try {
-            $path = UploadedFileStorage::storePublicSpreadsheet($file, 'hoja_vida/plantillas');
-        } catch (\Throwable $e) {
-            report($e);
-
-            return redirect()->route('formatos.index')
-                ->with('error', 'No se pudo guardar la plantilla.');
-        }
-
-        HojaVidaPlantilla::query()->updateOrCreate(
-            ['clase_equipo_id' => $clase->id],
-            [
-                'tipo_equipo_id' => $clase->tipo_equipo_id,
-                'plantilla_excel_path' => $path,
-                'creado_por' => auth()->id(),
-            ]
-        );
-
-        return redirect()->route('formatos.index')->with('success', '✅ Plantilla Excel asignada correctamente a la Clase de Equipo');
     }
 
-    public function download(HojaVidaPlantilla $plantilla)
+    public function pdf(ClaseEquipo $clase, Equipo $equipo)
     {
-        $this->assertCanViewModule('hoja_vida');
-        $this->ensurePlantillaBelongsToEmpresa($plantilla);
-        if (!$plantilla->plantilla_excel_path || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
-            abort(404);
-        }
+        $this->ensureCanViewFormatos();
+        $this->ensureEquipoClase($clase, $equipo);
 
-        $filename = 'plantilla-hoja-vida-clase-' . ($plantilla->clase_equipo_id ?: $plantilla->tipo_equipo_id) . '.xlsx';
+        $html = HojaVidaAutoFields::renderHtml($equipo, true, true);
+        $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => false])
+            ->loadHTML($html)
+            ->setPaper('a4');
 
-        return Storage::disk('public')->download($plantilla->plantilla_excel_path, $filename);
+        $filename = 'hoja-vida-' . ($equipo->codigo ?: $equipo->id) . '.pdf';
+
+        return $pdf->download($filename);
     }
 
-    public function formReemplazar(HojaVidaPlantilla $plantilla)
+    public function store()
     {
-        $this->assertCanEditModule('hoja_vida');
-        $this->ensurePlantillaBelongsToEmpresa($plantilla);
-        $plantilla->load(['claseEquipo', 'tipoEquipo']);
-        return view('admin.formatos.reemplazar', compact('plantilla'));
+        $this->ensureCanViewFormatos();
+
+        return redirect()->route('formatos.index')
+            ->with('info', 'El formato de hoja de vida lo genera el sistema con los datos del equipo. Ya no se sube un Excel.');
     }
 
-    public function reemplazar(Request $request, HojaVidaPlantilla $plantilla)
+    public function download()
     {
-        $this->assertCanEditModule('hoja_vida');
-        $this->ensurePlantillaBelongsToEmpresa($plantilla);
-        $request->validate([
-            'plantilla_excel' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
-        ]);
+        $this->ensureCanViewFormatos();
 
-        if ($plantilla->plantilla_excel_path && Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
-            Storage::disk('public')->delete($plantilla->plantilla_excel_path);
-        }
-
-        $file = $request->file('plantilla_excel');
-        try {
-            $path = UploadedFileStorage::storePublicSpreadsheet($file, 'hoja_vida/plantillas');
-        } catch (\Throwable $e) {
-            report($e);
-
-            return redirect()->route('formatos.index')
-                ->with('error', 'No se pudo guardar la plantilla.');
-        }
-
-        $plantilla->update(['plantilla_excel_path' => $path]);
-
-        // Al reemplazar el formato, se borran las hojas de vida ya guardadas de todos los equipos
-        // de esta clase para que tengan que rellenar de nuevo con la nueva plantilla.
-        $equipoIds = Equipo::where('clase_equipo_id', $plantilla->clase_equipo_id)->pluck('id');
-        HojaVidaDocumento::whereIn('equipo_id', $equipoIds)->delete();
-
-        return redirect()->route('formatos.index')->with('success', '✅ Formato reemplazado. Los equipos de esta clase deberán rellenar la hoja de vida de nuevo.');
+        return redirect()->route('formatos.index')
+            ->with('info', 'El formato de hoja de vida lo genera el sistema. Abre una clase y un equipo para verlo o descargar el PDF.');
     }
 
-    private function ensurePlantillaBelongsToEmpresa(HojaVidaPlantilla $plantilla): void
+    public function formReemplazar()
     {
-        $plantilla->loadMissing('claseEquipo');
-        $empresaId = $this->resolveTenantEmpresaId();
-        if (!$empresaId) {
-            if (!$this->moduleAuthz()->isGlobalAdmin()) {
-                abort(403, 'No tienes acceso a esta plantilla.');
-            }
+        return $this->download();
+    }
 
+    public function reemplazar()
+    {
+        return $this->store();
+    }
+
+    private function ensureCanViewFormatos(): void
+    {
+        $authz = $this->moduleAuthz();
+        if ($authz->canViewModule('hoja_vida') || $authz->canViewModule('inspeccion') || $authz->canViewModule('exportar')) {
             return;
         }
-        if (!$plantilla->claseEquipo || (int) $plantilla->claseEquipo->empresa_id !== (int) $empresaId) {
-            abort(403, 'No tienes acceso a esta plantilla.');
+
+        abort(403, 'No tienes permiso para acceder a este módulo.');
+    }
+
+    private function ensureClaseTenant(ClaseEquipo $clase): void
+    {
+        if ($clase->empresa_id) {
+            $this->moduleAuthz()->assertTenantOwns((int) $clase->empresa_id);
+        }
+    }
+
+    private function ensureEquipoClase(ClaseEquipo $clase, Equipo $equipo): void
+    {
+        $this->ensureClaseTenant($clase);
+        abort_unless($equipo->activo, 404);
+        abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
+        if ($equipo->empresa_id) {
+            $this->moduleAuthz()->assertTenantOwns((int) $equipo->empresa_id);
         }
     }
 }

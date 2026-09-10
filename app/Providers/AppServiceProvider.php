@@ -14,6 +14,8 @@ use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Auth\Events\Authenticated;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Validation\Rules\Password;
 
 class AppServiceProvider extends ServiceProvider
@@ -42,8 +44,8 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(User::class, UserPolicy::class);
         Gate::policy(Equipo::class, EquipoPolicy::class);
 
-        RateLimiter::for('ai-chat', function (Request $request) {
-            return Limit::perMinute(20)->by((string) ($request->user()?->id ?: $request->ip()));
+        Event::listen(Authenticated::class, function (Authenticated $event): void {
+            $event->user->loadMissing(['role', 'empresa']);
         });
 
         RateLimiter::for('geocode', function (Request $request) {

@@ -77,7 +77,112 @@ class UploadedFileStorage
 
     public static function storePublicImage(UploadedFile $file, string $directory): string
     {
-        return self::storePublic($file, $directory, ['image/jpeg', 'image/png', 'image/webp']);
+        $optimized = null;
+        try {
+            $optimized = self::optimizeImageContents($file);
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        if ($optimized === null) {
+            return self::storePublic($file, $directory, ['image/jpeg', 'image/png', 'image/webp']);
+        }
+
+        [$contents, $extension] = $optimized;
+        $filename = Str::random(40) . '.' . $extension;
+        $path = rtrim($directory, '/') . '/' . $filename;
+        Storage::disk('public')->put($path, $contents);
+
+        return $path;
+    }
+
+    /**
+     * Reduce fotos grandes para que quepan y ocupen menos.
+     * Si GD no está, la resolución es enorme o falla, retorna null y se guarda el original.
+     *
+     * @return array{0: string, 1: string}|null
+     */
+    private static function optimizeImageContents(UploadedFile $file): ?array
+    {
+        if (! function_exists('imagecreatetruecolor') || ! function_exists('imagejpeg')) {
+            return null;
+        }
+
+        $tmpPath = $file->getRealPath() ?: $file->getPathname();
+        if (! $tmpPath || ! is_file($tmpPath)) {
+            return null;
+        }
+
+        $info = @getimagesize($tmpPath);
+        if (! is_array($info) || empty($info[0]) || empty($info[1])) {
+            return null;
+        }
+
+        $srcW = (int) $info[0];
+        $srcH = (int) $info[1];
+        // Un JPEG de pocos MB puede decodificar a decenas de millones de píxeles y tumbar PHP.
+        if ($srcW * $srcH > 6_000_000 || $srcW > 4500 || $srcH > 4500) {
+            return null;
+        }
+
+        $mime = self::detectMime($tmpPath, $file);
+        $source = match ($mime) {
+            'image/jpeg' => @imagecreatefromjpeg($tmpPath),
+            'image/png' => @imagecreatefrompng($tmpPath),
+            'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($tmpPath) : false,
+            default => false,
+        };
+        if ($source === false) {
+            return null;
+        }
+
+        $width = imagesx($source);
+        $height = imagesy($source);
+        $maxEdge = 1920;
+        $scale = 1.0;
+        if ($width > $maxEdge || $height > $maxEdge) {
+            $scale = $maxEdge / max($width, $height);
+        }
+
+        $target = $source;
+        if ($scale < 1) {
+            $newW = max(1, (int) round($width * $scale));
+            $newH = max(1, (int) round($height * $scale));
+            $resized = imagecreatetruecolor($newW, $newH);
+            if ($resized === false) {
+                imagedestroy($source);
+
+                return null;
+            }
+            $white = imagecolorallocate($resized, 255, 255, 255);
+            imagefilledrectangle($resized, 0, 0, $newW, $newH, $white);
+            imagecopyresampled($resized, $source, 0, 0, 0, 0, $newW, $newH, $width, $height);
+            imagedestroy($source);
+            $target = $resized;
+        } elseif ($mime === 'image/png' || $mime === 'image/webp') {
+            $flattened = imagecreatetruecolor($width, $height);
+            if ($flattened === false) {
+                imagedestroy($source);
+
+                return null;
+            }
+            $white = imagecolorallocate($flattened, 255, 255, 255);
+            imagefilledrectangle($flattened, 0, 0, $width, $height, $white);
+            imagecopy($flattened, $source, 0, 0, 0, 0, $width, $height);
+            imagedestroy($source);
+            $target = $flattened;
+        }
+
+        ob_start();
+        $ok = imagejpeg($target, null, 85);
+        $binary = (string) ob_get_clean();
+        imagedestroy($target);
+
+        if (! $ok || $binary === '') {
+            return null;
+        }
+
+        return [$binary, 'jpg'];
     }
 
     public static function storePublicSpreadsheet(UploadedFile $file, string $directory): string

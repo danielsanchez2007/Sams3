@@ -326,11 +326,18 @@ class UserController extends Controller
             $statsBase->where('empresa_id', $empresaId);
         }
 
+        $statsRow = (clone $statsBase)->selectRaw('
+                COUNT(*) as total,
+                SUM(CASE WHEN active = 1 THEN 1 ELSE 0 END) as active,
+                SUM(CASE WHEN active = 0 AND role_id IS NULL THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN email_verified_at IS NOT NULL THEN 1 ELSE 0 END) as verified
+            ')->first();
+
         $stats = [
-            'total' => (clone $statsBase)->count(),
-            'active' => (clone $statsBase)->where('active', true)->count(),
-            'pending' => (clone $statsBase)->where('active', false)->whereNull('role_id')->count(),
-            'verified' => (clone $statsBase)->whereNotNull('email_verified_at')->count(),
+            'total' => (int) ($statsRow->total ?? 0),
+            'active' => (int) ($statsRow->active ?? 0),
+            'pending' => (int) ($statsRow->pending ?? 0),
+            'verified' => (int) ($statsRow->verified ?? 0),
             'admins' => (clone $statsBase)->whereHas('role', function ($r) {
                 $r->where('name', 'administrador');
             })->count(),
@@ -453,7 +460,9 @@ class UserController extends Controller
             if ($fallbackRoleId) {
                 $request->merge(['role_id' => $fallbackRoleId]);
             } else {
-                return back()->withErrors(['role_id' => 'El rol administrador es global y no aplica a usuarios de empresa.'])->withInput();
+                return $this->userFormErrorResponse($request, [
+                    'role_id' => 'El rol administrador es global y no aplica a usuarios de empresa.',
+                ]);
             }
         }
 
@@ -492,7 +501,17 @@ class UserController extends Controller
             $user->update(['signature' => $path]);
         }
 
-        return redirect()->route('users.complete')->with('success', 'Usuario creado correctamente.');
+        $okMessage = 'Usuario creado correctamente.';
+        session()->flash('success', $okMessage);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $okMessage,
+                'redirect' => route('users.complete'),
+            ]);
+        }
+
+        return redirect()->route('users.complete');
     }
 
     public function edit(User $user)
@@ -527,7 +546,9 @@ class UserController extends Controller
             if ($fallbackRoleId) {
                 $request->merge(['role_id' => $fallbackRoleId]);
             } else {
-                return back()->withErrors(['role_id' => 'El rol administrador es global y no aplica a usuarios de empresa.'])->withInput();
+                return $this->userFormErrorResponse($request, [
+                    'role_id' => 'El rol administrador es global y no aplica a usuarios de empresa.',
+                ]);
             }
         }
         $empresaIdContexto = $this->resolveEmpresaContextId($user);
@@ -618,7 +639,17 @@ class UserController extends Controller
             $user->update(['signature' => $path]);
         }
 
-        return redirect()->route('users.complete')->with('success', 'Usuario actualizado correctamente.');
+        $okMessage = 'Usuario actualizado correctamente.';
+        session()->flash('success', $okMessage);
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $okMessage,
+                'redirect' => route('users.complete'),
+            ]);
+        }
+
+        return redirect()->route('users.complete');
     }
 
     public function toggleStatus(Request $request, User $user)
@@ -893,5 +924,22 @@ class UserController extends Controller
             'success' => true,
             'message' => 'Solicitud rechazada y eliminada.',
         ]);
+    }
+
+    private function userFormErrorResponse(Request $request, array $errors)
+    {
+        if ($request->expectsJson() || $request->ajax()) {
+            $normalized = [];
+            foreach ($errors as $key => $message) {
+                $normalized[$key] = array_values((array) $message);
+            }
+
+            return response()->json([
+                'message' => collect($normalized)->flatten()->first(),
+                'errors' => $normalized,
+            ], 422);
+        }
+
+        return back()->withErrors($errors)->withInput();
     }
 }

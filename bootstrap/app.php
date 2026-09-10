@@ -71,6 +71,6 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         $exceptions->shouldRenderJsonWhen(function (Request $request) {
-            return $request->expectsJson() || $request->is('asistente/*') || $request->is('empresa/geocode');
+            return $request->expectsJson() || $request->is('empresa/geocode');
         });
     })->create();

@@ -42,8 +42,10 @@
         </div>
     @endif
 
-    <div class="pw-card bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
-        <div class="text-lg font-semibold text-gray-900 mb-2">Datos de la inspección</div>
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-8 space-y-6">
+            <div class="pw-card bg-white rounded-2xl shadow-lg p-5 border border-gray-100">
+                <div class="text-lg font-semibold text-gray-900 mb-2">Datos de la inspección</div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
             <div>
                 <span class="text-gray-500">Fecha inspección:</span>
@@ -124,6 +126,11 @@
             <button type="submit" class="pw-btn-success px-4 py-2 rounded-lg">Guardar cambios</button>
         </div>
     </form>
+        </div>
+        <div class="lg:col-span-4 space-y-4">
+            @include('admin.inspeccion.partials.panel-lateral')
+        </div>
+    </div>
 
     {{-- Modal vista previa PDF (igual que Hoja de Vida) --}}
     <div id="pdfPreviewModal" class="fixed inset-0 z-50 hidden" aria-hidden="true">
@@ -175,7 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     if (pdfClose) pdfClose.addEventListener('click', closePdfModal);
-    if (pdfBackdrop) pdfBackdrop.addEventListener('click', closePdfModal);
     function closePdfModal() {
         if (pdfModal) {
             pdfModal.classList.add('hidden');
@@ -245,4 +251,5 @@ document.addEventListener('DOMContentLoaded', function() {
     renderInspectorPreview();
 });
 </script>
+@include('admin.inspeccion.partials.panel-lateral-script')
 @endsection

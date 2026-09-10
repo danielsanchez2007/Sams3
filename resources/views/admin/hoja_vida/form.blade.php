@@ -366,7 +366,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     if (pdfClose) pdfClose.addEventListener('click', closePdfModal);
-    if (pdfBackdrop) pdfBackdrop.addEventListener('click', closePdfModal);
     function closePdfModal() {
         if (pdfModal) {
             pdfModal.classList.add('hidden');

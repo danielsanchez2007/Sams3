@@ -178,42 +178,57 @@
 </div>
 
 <!-- Create Role Modal -->
-<div id="createRoleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Crear Nuevo Rol</h3>
-        <form action="{{ route('roles.store') }}" method="POST">
-            @csrf
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Rol *</label>
-                    <input type="text" name="name" required class="w-full pw-input">
-                    @if(!empty($empresaPrefijo))
-                    <p class="mt-1 text-xs text-gray-500">Se guardará con prefijo de empresa: <strong>{{ $empresaPrefijo }}-</strong></p>
-                    @endif
+<div id="createRoleModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="createRoleTitle">
+    <div class="pw-modal-content pw-modal-lg">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="shield" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea name="description" rows="3" class="w-full pw-textarea"></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Permisos / Apartados que puede ver</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto text-sm">
-                        @foreach($availablePermissions as $permKey => $permLabel)
-                            <label class="inline-flex items-center gap-2 text-gray-700">
-                                <input type="checkbox" name="permissions[]" value="{{ $permKey }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                <span>{{ $permLabel }}</span>
-                            </label>
-                        @endforeach
-                    </div>
-                    <p class="mt-1 text-xs text-gray-500">Solo se muestran los apartados disponibles en la empresa activa.</p>
+                    <h3 id="createRoleTitle" class="pw-modal-title">Crear rol</h3>
+                    <p class="pw-modal-subtitle">Define el nombre y los apartados que podrá ver.</p>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideCreateRoleModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <button type="button" class="pw-modal-close" onclick="hideCreateRoleModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="{{ route('roles.store') }}" method="POST">
+            @csrf
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del rol <span class="pw-req">*</span></label>
+                        <input type="text" name="name" required class="w-full pw-input">
+                        @if(!empty($empresaPrefijo))
+                        <p class="pw-hint">Se guardará con prefijo de empresa: <strong>{{ $empresaPrefijo }}-</strong></p>
+                        @endif
+                    </div>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea name="description" rows="3" class="w-full pw-textarea"></textarea>
+                    </div>
+                    <div>
+                        <label>Permisos / apartados que puede ver</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto text-sm border border-gray-200 rounded-lg p-3 bg-gray-50">
+                            @foreach($availablePermissions as $permKey => $permLabel)
+                                <label class="inline-flex items-center gap-2 text-gray-700 !mb-0">
+                                    <input type="checkbox" name="permissions[]" value="{{ $permKey }}" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span>{{ $permLabel }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <p class="pw-hint">Solo se muestran los apartados disponibles en la empresa activa.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideCreateRoleModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Crear Rol
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Crear rol
                 </button>
             </div>
         </form>
@@ -221,43 +236,58 @@
 </div>
 
 <!-- Edit Role Modal -->
-<div id="editRoleModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Rol</h3>
+<div id="editRoleModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="editRoleTitle">
+    <div class="pw-modal-content pw-modal-lg">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="shield" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="editRoleTitle" class="pw-modal-title">Editar rol</h3>
+                    <p class="pw-modal-subtitle">Ajusta el nombre, la descripción y los permisos.</p>
+                </div>
+            </div>
+            <button type="button" class="pw-modal-close" onclick="hideEditRoleModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
         <form id="editRoleForm" method="POST">
             @csrf
             @method('PUT')
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Rol *</label>
-                    <input type="text" id="editNombre" name="name" required class="w-full pw-input">
-                    @if(!empty($empresaPrefijo))
-                    <p class="mt-1 text-xs text-gray-500">Se mantiene prefijo de empresa: <strong>{{ $empresaPrefijo }}-</strong></p>
-                    @endif
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea id="editDescripcion" name="description" rows="3" class="w-full pw-textarea"></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Permisos / Apartados que puede ver</label>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto text-sm" id="editPermsContainer">
-                        @foreach($availablePermissions as $permKey => $permLabel)
-                            <label class="inline-flex items-center gap-2 text-gray-700">
-                                <input type="checkbox" name="permissions[]" value="{{ $permKey }}" class="edit-perm-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                                <span>{{ $permLabel }}</span>
-                            </label>
-                        @endforeach
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del rol <span class="pw-req">*</span></label>
+                        <input type="text" id="editNombre" name="name" required class="w-full pw-input">
+                        @if(!empty($empresaPrefijo))
+                        <p class="pw-hint">Se mantiene prefijo de empresa: <strong>{{ $empresaPrefijo }}-</strong></p>
+                        @endif
                     </div>
-                    <p class="mt-1 text-xs text-gray-500">Solo se muestran los apartados disponibles en la empresa activa.</p>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea id="editDescripcion" name="description" rows="3" class="w-full pw-textarea"></textarea>
+                    </div>
+                    <div>
+                        <label>Permisos / apartados que puede ver</label>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto text-sm border border-gray-200 rounded-lg p-3 bg-gray-50" id="editPermsContainer">
+                            @foreach($availablePermissions as $permKey => $permLabel)
+                                <label class="inline-flex items-center gap-2 text-gray-700 !mb-0">
+                                    <input type="checkbox" name="permissions[]" value="{{ $permKey }}" class="edit-perm-checkbox rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                                    <span>{{ $permLabel }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                        <p class="pw-hint">Solo se muestran los apartados disponibles en la empresa activa.</p>
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideEditRoleModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideEditRoleModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Actualizar Rol
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Actualizar rol
                 </button>
             </div>
         </form>
@@ -266,7 +296,7 @@
 @endsection
 
 @section('scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js" defer></script>
+@vite('resources/js/charts.js')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const waitChart = function(cb) {

@@ -242,7 +242,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
-                    <input type="password" name="password" class="pw-input w-full" autocomplete="new-password" placeholder="Mínimo 8 caracteres">
+                    <input type="password" name="password" class="pw-input w-full" autocomplete="new-password" minlength="10" maxlength="72" placeholder="Mínimo 10 caracteres" data-pw-meter="optional">
                     @error('password')<p class="text-red-600 text-sm mt-1">{{ $message }}</p>@enderror
                 </div>
                 <div>
@@ -408,11 +408,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     if (sigModeDrawBtn) sigModeDrawBtn.addEventListener('click', openDrawModal);
     if (sigCloseModalBtn) sigCloseModalBtn.addEventListener('click', closeDrawModal);
-    if (sigModal) {
-        sigModal.addEventListener('click', function(e) {
-            if (e.target === sigModal) closeDrawModal();
-        });
-    }
 
     if (sigCanvas) {
         var ctx = sigCanvas.getContext('2d');

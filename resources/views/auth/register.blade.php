@@ -80,13 +80,14 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-2">Contraseña Provisional</label>
-                    <input name="password" type="password" required autocomplete="new-password" minlength="4"
-                        class="w-full bg-white border border-slate-300 rounded-2xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-200 transition-all">
+                    <input name="password" type="password" required autocomplete="new-password" minlength="10" maxlength="72"
+                        class="w-full bg-white border border-slate-300 rounded-2xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-200 transition-all" data-pw-meter="required">
+                    <p class="pw-hint mt-2">Mínimo 10 caracteres, con mayúscula, minúscula y un número.</p>
                 </div>
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-2">Confirmar Contraseña</label>
-                    <input name="password_confirmation" type="password" required autocomplete="new-password" minlength="4"
+                    <input name="password_confirmation" type="password" required autocomplete="new-password" minlength="10" maxlength="72"
                         class="w-full bg-white border border-slate-300 rounded-2xl px-5 py-3 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-200 transition-all">
                 </div>
 

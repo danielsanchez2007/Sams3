@@ -16,10 +16,10 @@ class EquiposAuditoriaController extends Controller
 
         $equipos = Equipo::query()
             ->where('activo', true)
-            ->with(['imagenes'])
+            ->with(['imagenes:id,equipo_id,tipo,path'])
             ->orderBy('id')
             ->limit(400)
-            ->get();
+            ->get(['id', 'codigo', 'nombre', 'serial', 'descripcion']);
 
         $equiposJs = $equipos->map(function ($e) {
             $imgEtiqueta = $e->imagenes->firstWhere('tipo', 'etiqueta');

@@ -20,16 +20,6 @@
 
 @section('content')
 <div class="max-w-7xl mx-auto">
-    @if ($errors->any())
-        <div class="mb-4 rounded-lg border border-red-300 bg-red-50 text-red-700 px-4 py-3 text-sm">
-            <div class="font-semibold mb-1">No se pudo crear/actualizar el usuario:</div>
-            <ul class="list-disc list-inside">
-                @foreach ($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
     @if (session('success'))
         <div class="mb-4 rounded-lg border border-green-300 bg-green-50 text-green-700 px-4 py-3 text-sm">
             {{ session('success') }}
@@ -239,143 +229,190 @@
 </div>
 
 <!-- Create User Modal -->
-<div id="createUserModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-3">
-    <div class="pw-modal-content bg-white rounded-xl p-4 sm:p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Crear Nuevo Usuario</h3>
-        <form action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data">
-            @csrf
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                    <input type="text" name="name" required value="{{ old('name') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+<div id="createUserModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="createUserTitle">
+    <div class="pw-modal-content pw-modal-xl">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="user-plus" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
-                    <input type="text" name="last_name" value="{{ old('last_name') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Género</label>
-                    <select name="gender" id="createGender" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="toggleGenderOther('create')">
-                        <option value="">Seleccionar...</option>
-                        <option value="hombre" {{ old('gender') === 'hombre' ? 'selected' : '' }}>Hombre</option>
-                        <option value="mujer" {{ old('gender') === 'mujer' ? 'selected' : '' }}>Mujer</option>
-                        <option value="otro" {{ old('gender') === 'otro' ? 'selected' : '' }}>Otro</option>
-                    </select>
-                </div>
-                <div id="createGenderOtherWrap" class="{{ old('gender') === 'otro' ? '' : 'hidden' }}">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuál?</label>
-                    <input type="text" id="createGenderOther" name="gender_other" value="{{ old('gender_other') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe el género">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                    <input type="email" name="email" required value="{{ old('email') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo documento</label>
-                    <select name="document_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar...</option>
-                        <option value="CC" {{ old('document_type') === 'CC' ? 'selected' : '' }}>Cédula de Ciudadanía</option>
-                        <option value="CE" {{ old('document_type') === 'CE' ? 'selected' : '' }}>Cédula de Extranjería</option>
-                        <option value="TI" {{ old('document_type') === 'TI' ? 'selected' : '' }}>Tarjeta de Identidad</option>
-                        <option value="PP" {{ old('document_type') === 'PP' ? 'selected' : '' }}>Pasaporte</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Número documento</label>
-                    <input type="text" name="document_number" value="{{ old('document_number') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: 123456789">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de nacimiento</label>
-                    <input type="date" name="birth_date" value="{{ old('birth_date') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                    <input type="tel" name="phone" value="{{ old('phone') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+573001112233">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
-                    <input type="text" name="address" value="{{ old('address') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Calle, Ciudad, País">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">¿Correo corporativo?</label>
-                    <select id="createHasCorporateEmail" name="has_corporate_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="toggleCorporateEmail('create')">
-                        <option value="0" {{ old('has_corporate_email', '0') == '0' ? 'selected' : '' }}>No</option>
-                        <option value="1" {{ old('has_corporate_email') == '1' ? 'selected' : '' }}>Sí</option>
-                    </select>
-                </div>
-                <div id="createCorporateEmailWrap" class="{{ old('has_corporate_email') == '1' ? '' : 'hidden' }}">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Correo corporativo</label>
-                    <input type="email" id="createCorporateEmail" name="corporate_email" value="{{ old('corporate_email') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="correo@empresa.com">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">¿Teléfono corporativo?</label>
-                    <select id="createHasCorporatePhone" name="has_corporate_phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="toggleCorporatePhone('create')">
-                        <option value="0" {{ old('has_corporate_phone', '0') == '0' ? 'selected' : '' }}>No</option>
-                        <option value="1" {{ old('has_corporate_phone') == '1' ? 'selected' : '' }}>Sí</option>
-                    </select>
-                </div>
-                <div id="createCorporatePhoneWrap" class="{{ old('has_corporate_phone') == '1' ? '' : 'hidden' }}">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono corporativo</label>
-                    <input type="text" id="createCorporatePhone" name="corporate_phone" value="{{ old('corporate_phone') }}" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+573001112233">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Contraseña *</label>
-                    <input type="password" name="password" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <p class="mt-1 text-xs text-gray-500">Contraseña provisional (mínimo 4). El usuario la cambiará al entrar.</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Contraseña *</label>
-                    <input type="password" name="password_confirmation" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Foto (opcional)</label>
-                    <input type="file" name="photo" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Firma (opcional)</label>
-                    <input type="file" name="signature" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol *</label>
-                    <select name="role_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar rol</option>
-                        @foreach($roles as $role)
-                        <option value="{{ $role->id }}" {{ (string) old('role_id') === (string) $role->id ? 'selected' : '' }}>{{ $role->name }} - {{ $role->description ?? 'Sin descripción' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
-                    <select name="cargo_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar cargo</option>
-                        @foreach($cargos as $cargo)
-                        <option value="{{ $cargo->id }}" {{ (string) old('cargo_id') === (string) $cargo->id ? 'selected' : '' }}>{{ $cargo->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Grupo</label>
-                    <select name="grupo_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar grupo</option>
-                        @foreach($grupos as $grupo)
-                        <option value="{{ $grupo->id }}" {{ (string) old('grupo_id') === (string) $grupo->id ? 'selected' : '' }}>{{ $grupo->name }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <select name="active" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="1" {{ old('active', '1') == '1' ? 'selected' : '' }}>Activo</option>
-                        <option value="0" {{ old('active') == '0' ? 'selected' : '' }}>Inactivo</option>
-                    </select>
+                    <h3 id="createUserTitle" class="pw-modal-title">Crear usuario</h3>
+                    <p class="pw-modal-subtitle">Completa los datos personales, de contacto y de acceso.</p>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideCreateUserModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <button type="button" class="pw-modal-close" onclick="hideCreateUserModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form id="createUserForm" action="{{ route('users.store') }}" method="POST" enctype="multipart/form-data">
+            @csrf
+            <div class="pw-modal-body">
+                <div class="pw-form-alert hidden" data-form-alert></div>
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Datos personales</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Nombre <span class="pw-req">*</span></label>
+                            <input type="text" name="name" required value="{{ old('name') }}" class="w-full" autocomplete="given-name">
+                        </div>
+                        <div>
+                            <label>Apellido</label>
+                            <input type="text" name="last_name" value="{{ old('last_name') }}" class="w-full" autocomplete="family-name">
+                        </div>
+                        <div>
+                            <label>Género</label>
+                            <select name="gender" id="createGender" class="w-full" onchange="toggleGenderOther('create')">
+                                <option value="">Seleccionar...</option>
+                                <option value="hombre" {{ old('gender') === 'hombre' ? 'selected' : '' }}>Hombre</option>
+                                <option value="mujer" {{ old('gender') === 'mujer' ? 'selected' : '' }}>Mujer</option>
+                                <option value="otro" {{ old('gender') === 'otro' ? 'selected' : '' }}>Otro</option>
+                            </select>
+                        </div>
+                        <div id="createGenderOtherWrap" class="{{ old('gender') === 'otro' ? '' : 'hidden' }}">
+                            <label>¿Cuál?</label>
+                            <input type="text" id="createGenderOther" name="gender_other" value="{{ old('gender_other') }}" class="w-full" placeholder="Escribe el género">
+                        </div>
+                        <div>
+                            <label>Tipo de documento</label>
+                            <select name="document_type" class="w-full">
+                                <option value="">Seleccionar...</option>
+                                <option value="CC" {{ old('document_type') === 'CC' ? 'selected' : '' }}>Cédula de Ciudadanía</option>
+                                <option value="CE" {{ old('document_type') === 'CE' ? 'selected' : '' }}>Cédula de Extranjería</option>
+                                <option value="TI" {{ old('document_type') === 'TI' ? 'selected' : '' }}>Tarjeta de Identidad</option>
+                                <option value="PP" {{ old('document_type') === 'PP' ? 'selected' : '' }}>Pasaporte</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Número de documento</label>
+                            <input type="text" name="document_number" value="{{ old('document_number') }}" class="w-full" placeholder="Ej: 123456789">
+                        </div>
+                        <div>
+                            <label>Fecha de nacimiento</label>
+                            <input type="date" name="birth_date" value="{{ old('birth_date') }}" class="w-full">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Contacto</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Email <span class="pw-req">*</span></label>
+                            <input type="email" name="email" required value="{{ old('email') }}" class="w-full" autocomplete="email">
+                        </div>
+                        <div>
+                            <label>Teléfono</label>
+                            <input type="tel" name="phone" value="{{ old('phone') }}" class="w-full" placeholder="+573001112233" autocomplete="tel">
+                        </div>
+                        <div class="pw-span-2">
+                            <label>Dirección</label>
+                            <input type="text" name="address" value="{{ old('address') }}" class="w-full" placeholder="Calle, ciudad, país">
+                        </div>
+                        <div>
+                            <label>¿Correo corporativo?</label>
+                            <select id="createHasCorporateEmail" name="has_corporate_email" class="w-full" onchange="toggleCorporateEmail('create')">
+                                <option value="0" {{ old('has_corporate_email', '0') == '0' ? 'selected' : '' }}>No</option>
+                                <option value="1" {{ old('has_corporate_email') == '1' ? 'selected' : '' }}>Sí</option>
+                            </select>
+                        </div>
+                        <div id="createCorporateEmailWrap" class="{{ old('has_corporate_email') == '1' ? '' : 'hidden' }}">
+                            <label>Correo corporativo</label>
+                            <input type="email" id="createCorporateEmail" name="corporate_email" value="{{ old('corporate_email') }}" class="w-full" placeholder="correo@empresa.com">
+                        </div>
+                        <div>
+                            <label>¿Teléfono corporativo?</label>
+                            <select id="createHasCorporatePhone" name="has_corporate_phone" class="w-full" onchange="toggleCorporatePhone('create')">
+                                <option value="0" {{ old('has_corporate_phone', '0') == '0' ? 'selected' : '' }}>No</option>
+                                <option value="1" {{ old('has_corporate_phone') == '1' ? 'selected' : '' }}>Sí</option>
+                            </select>
+                        </div>
+                        <div id="createCorporatePhoneWrap" class="{{ old('has_corporate_phone') == '1' ? '' : 'hidden' }}">
+                            <label>Teléfono corporativo</label>
+                            <input type="text" id="createCorporatePhone" name="corporate_phone" value="{{ old('corporate_phone') }}" class="w-full" placeholder="+573001112233">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Acceso</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Contraseña <span class="pw-req">*</span></label>
+                            <input type="password" name="password" required minlength="10" maxlength="72" class="w-full" autocomplete="new-password" data-pw-meter="required">
+                            <p class="pw-hint">Mínimo 10 caracteres, con mayúscula, minúscula y un número.</p>
+                        </div>
+                        <div>
+                            <label>Confirmar contraseña <span class="pw-req">*</span></label>
+                            <input type="password" name="password_confirmation" required minlength="10" maxlength="72" class="w-full" autocomplete="new-password">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Archivos</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Foto</label>
+                            <div class="pw-upload-box">
+                                <input type="file" name="photo" accept="image/*" class="w-full">
+                            </div>
+                        </div>
+                        <div>
+                            <label>Firma</label>
+                            <div class="pw-upload-box">
+                                <input type="file" name="signature" accept="image/*" class="w-full">
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Asignación</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Rol <span class="pw-req">*</span></label>
+                            <select name="role_id" required class="w-full">
+                                <option value="">Seleccionar rol</option>
+                                @foreach($roles as $role)
+                                <option value="{{ $role->id }}" {{ (string) old('role_id') === (string) $role->id ? 'selected' : '' }}>{{ $role->name }} - {{ $role->description ?? 'Sin descripción' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label>Cargo</label>
+                            <select name="cargo_id" class="w-full">
+                                <option value="">Seleccionar cargo</option>
+                                @foreach($cargos as $cargo)
+                                <option value="{{ $cargo->id }}" {{ (string) old('cargo_id') === (string) $cargo->id ? 'selected' : '' }}>{{ $cargo->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label>Grupo</label>
+                            <select name="grupo_id" class="w-full">
+                                <option value="">Seleccionar grupo</option>
+                                @foreach($grupos as $grupo)
+                                <option value="{{ $grupo->id }}" {{ (string) old('grupo_id') === (string) $grupo->id ? 'selected' : '' }}>{{ $grupo->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label>Estado</label>
+                            <select name="active" class="w-full">
+                                <option value="1" {{ old('active', '1') == '1' ? 'selected' : '' }}>Activo</option>
+                                <option value="0" {{ old('active') == '0' ? 'selected' : '' }}>Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideCreateUserModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Crear Usuario
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Crear usuario
                 </button>
             </div>
         </form>
@@ -383,150 +420,198 @@
 </div>
 
 <!-- Edit User Modal -->
-<div id="editUserModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-3">
-    <div class="pw-modal-content bg-white rounded-xl p-4 sm:p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Usuario</h3>
+<div id="editUserModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="editUserTitle">
+    <div class="pw-modal-content pw-modal-xl">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                            <i data-lucide="pencil" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="editUserTitle" class="pw-modal-title">Editar usuario</h3>
+                    <p class="pw-modal-subtitle">Actualiza la información del usuario sin perder el contexto de la lista.</p>
+                </div>
+            </div>
+            <button type="button" class="pw-modal-close" onclick="hideEditUserModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
         <form id="editUserForm" method="POST" enctype="multipart/form-data">
             @csrf
             @method('PUT')
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre *</label>
-                    <input type="text" id="editNombre" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Apellido</label>
-                    <input type="text" id="editApellido" name="last_name" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Género</label>
-                    <select id="editGender" name="gender" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="toggleGenderOther('edit')">
-                        <option value="">Seleccionar...</option>
-                        <option value="hombre">Hombre</option>
-                        <option value="mujer">Mujer</option>
-                        <option value="otro">Otro</option>
-                    </select>
-                </div>
-                <div id="editGenderOtherWrap" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">¿Cuál?</label>
-                    <input type="text" id="editGenderOther" name="gender_other" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Escribe el género">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Email *</label>
-                    <input type="email" id="editEmail" name="email" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Tipo documento</label>
-                    <select id="editDocumentType" name="document_type" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar...</option>
-                        <option value="CC">Cédula de Ciudadanía</option>
-                        <option value="CE">Cédula de Extranjería</option>
-                        <option value="TI">Tarjeta de Identidad</option>
-                        <option value="PP">Pasaporte</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Número documento</label>
-                    <input type="text" id="editDocumentNumber" name="document_number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ej: 123456789">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha de nacimiento</label>
-                    <input type="date" id="editBirthDate" name="birth_date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
-                    <input type="tel" id="editPhone" name="phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+573001112233">
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Dirección</label>
-                    <input type="text" id="editAddress" name="address" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Calle, Ciudad, País">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">¿Correo corporativo?</label>
-                    <select id="editHasCorporateEmail" name="has_corporate_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="toggleCorporateEmail('edit')">
-                        <option value="0">No</option>
-                        <option value="1">Sí</option>
-                    </select>
-                </div>
-                <div id="editCorporateEmailWrap" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Correo corporativo</label>
-                    <input type="email" id="editCorporateEmail" name="corporate_email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="correo@empresa.com">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">¿Teléfono corporativo?</label>
-                    <select id="editHasCorporatePhone" name="has_corporate_phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" onchange="toggleCorporatePhone('edit')">
-                        <option value="0">No</option>
-                        <option value="1">Sí</option>
-                    </select>
-                </div>
-                <div id="editCorporatePhoneWrap" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono corporativo</label>
-                    <input type="text" id="editCorporatePhone" name="corporate_phone" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="+573001112233">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nueva Contraseña</label>
-                    <input type="password" id="editPassword" name="password" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Dejar en blanco para mantener actual">
-                    <p class="mt-1 text-xs text-gray-500">Opcional. Mínimo 4 caracteres si se cambia.</p>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirmar Contraseña</label>
-                    <input type="password" id="editPasswordConfirmation" name="password_confirmation" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Dejar en blanco para mantener actual">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Foto (opcional)</label>
-                    <input type="file" name="photo" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <div id="editPhotoPreviewWrap" class="mt-2 hidden">
-                        <img id="editPhotoPreview" class="w-20 h-20 object-cover rounded-lg border" alt="Foto actual" />
+            <input type="hidden" name="editing_user_id" id="editUserId" value="{{ old('editing_user_id') }}">
+            <div class="pw-modal-body">
+                <div class="pw-form-alert hidden" data-form-alert></div>
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Datos personales</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Nombre <span class="pw-req">*</span></label>
+                            <input type="text" id="editNombre" name="name" required class="w-full" autocomplete="given-name">
+                        </div>
+                        <div>
+                            <label>Apellido</label>
+                            <input type="text" id="editApellido" name="last_name" class="w-full" autocomplete="family-name">
+                        </div>
+                        <div>
+                            <label>Género</label>
+                            <select id="editGender" name="gender" class="w-full" onchange="toggleGenderOther('edit')">
+                                <option value="">Seleccionar...</option>
+                                <option value="hombre">Hombre</option>
+                                <option value="mujer">Mujer</option>
+                                <option value="otro">Otro</option>
+                            </select>
+                        </div>
+                        <div id="editGenderOtherWrap" class="hidden">
+                            <label>¿Cuál?</label>
+                            <input type="text" id="editGenderOther" name="gender_other" class="w-full" placeholder="Escribe el género">
+                        </div>
+                        <div>
+                            <label>Tipo de documento</label>
+                            <select id="editDocumentType" name="document_type" class="w-full">
+                                <option value="">Seleccionar...</option>
+                                <option value="CC">Cédula de Ciudadanía</option>
+                                <option value="CE">Cédula de Extranjería</option>
+                                <option value="TI">Tarjeta de Identidad</option>
+                                <option value="PP">Pasaporte</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Número de documento</label>
+                            <input type="text" id="editDocumentNumber" name="document_number" class="w-full" placeholder="Ej: 123456789">
+                        </div>
+                        <div>
+                            <label>Fecha de nacimiento</label>
+                            <input type="date" id="editBirthDate" name="birth_date" class="w-full">
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Firma (opcional)</label>
-                    <input type="file" name="signature" accept="image/*" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    <div id="editSignaturePreviewWrap" class="mt-2 hidden">
-                        <img id="editSignaturePreview" class="w-20 h-20 object-cover rounded-lg border" alt="Firma actual" />
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Contacto</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Email <span class="pw-req">*</span></label>
+                            <input type="email" id="editEmail" name="email" required class="w-full" autocomplete="email">
+                        </div>
+                        <div>
+                            <label>Teléfono</label>
+                            <input type="tel" id="editPhone" name="phone" class="w-full" placeholder="+573001112233" autocomplete="tel">
+                        </div>
+                        <div class="pw-span-2">
+                            <label>Dirección</label>
+                            <input type="text" id="editAddress" name="address" class="w-full" placeholder="Calle, ciudad, país">
+                        </div>
+                        <div>
+                            <label>¿Correo corporativo?</label>
+                            <select id="editHasCorporateEmail" name="has_corporate_email" class="w-full" onchange="toggleCorporateEmail('edit')">
+                                <option value="0">No</option>
+                                <option value="1">Sí</option>
+                            </select>
+                        </div>
+                        <div id="editCorporateEmailWrap" class="hidden">
+                            <label>Correo corporativo</label>
+                            <input type="email" id="editCorporateEmail" name="corporate_email" class="w-full" placeholder="correo@empresa.com">
+                        </div>
+                        <div>
+                            <label>¿Teléfono corporativo?</label>
+                            <select id="editHasCorporatePhone" name="has_corporate_phone" class="w-full" onchange="toggleCorporatePhone('edit')">
+                                <option value="0">No</option>
+                                <option value="1">Sí</option>
+                            </select>
+                        </div>
+                        <div id="editCorporatePhoneWrap" class="hidden">
+                            <label>Teléfono corporativo</label>
+                            <input type="text" id="editCorporatePhone" name="corporate_phone" class="w-full" placeholder="+573001112233">
+                        </div>
                     </div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Rol *</label>
-                    <select id="editRol" name="role_id" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar rol</option>
-                        @foreach($roles as $role)
-                        <option value="{{ $role->id }}">{{ $role->name }} - {{ $role->description ?? 'Sin descripción' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Cargo</label>
-                    <select id="editCargo" name="cargo_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar cargo</option>
-                        @foreach($cargos as $cargo)
-                        <option value="{{ $cargo->id }}">{{ $cargo->name }} - {{ $cargo->description ?? 'Sin descripción' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Grupo</label>
-                    <select id="editGrupo" name="grupo_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar grupo</option>
-                        @foreach($grupos as $grupo)
-                        <option value="{{ $grupo->id }}">{{ $grupo->name }} - {{ $grupo->description ?? 'Sin descripción' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Estado</label>
-                    <select id="editActive" name="active" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="1">Activo</option>
-                        <option value="0">Inactivo</option>
-                    </select>
-                </div>
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Acceso</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Nueva contraseña</label>
+                            <input type="password" id="editPassword" name="password" minlength="10" maxlength="72" class="w-full" placeholder="Dejar en blanco para mantener la actual" autocomplete="new-password" data-pw-meter="optional">
+                            <p class="pw-hint">Opcional. Si la cambias: mínimo 10 caracteres, con mayúscula, minúscula y un número.</p>
+                        </div>
+                        <div>
+                            <label>Confirmar contraseña</label>
+                            <input type="password" id="editPasswordConfirmation" name="password_confirmation" minlength="10" maxlength="72" class="w-full" placeholder="Dejar en blanco para mantener la actual" autocomplete="new-password">
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Archivos</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Foto</label>
+                            <div class="pw-upload-box">
+                                <input type="file" name="photo" accept="image/*" class="w-full">
+                                <div id="editPhotoPreviewWrap" class="pw-upload-preview hidden">
+                                    <img id="editPhotoPreview" alt="Foto actual" onerror="this.parentElement.classList.add('hidden')" />
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <label>Firma</label>
+                            <div class="pw-upload-box">
+                                <input type="file" name="signature" accept="image/*" class="w-full">
+                                <div id="editSignaturePreviewWrap" class="pw-upload-preview hidden">
+                                    <img id="editSignaturePreview" alt="Firma actual" onerror="this.parentElement.classList.add('hidden')" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="pw-modal-section">
+                    <h4 class="pw-modal-section-title">Asignación</h4>
+                    <div class="pw-modal-grid">
+                        <div>
+                            <label>Rol <span class="pw-req">*</span></label>
+                            <select id="editRol" name="role_id" required class="w-full">
+                                <option value="">Seleccionar rol</option>
+                                @foreach($roles as $role)
+                                <option value="{{ $role->id }}">{{ $role->name }} - {{ $role->description ?? 'Sin descripción' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label>Cargo</label>
+                            <select id="editCargo" name="cargo_id" class="w-full">
+                                <option value="">Seleccionar cargo</option>
+                                @foreach($cargos as $cargo)
+                                <option value="{{ $cargo->id }}">{{ $cargo->name }} - {{ $cargo->description ?? 'Sin descripción' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label>Grupo</label>
+                            <select id="editGrupo" name="grupo_id" class="w-full">
+                                <option value="">Seleccionar grupo</option>
+                                @foreach($grupos as $grupo)
+                                <option value="{{ $grupo->id }}">{{ $grupo->name }} - {{ $grupo->description ?? 'Sin descripción' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label>Estado</label>
+                            <select id="editActive" name="active" class="w-full">
+                                <option value="1">Activo</option>
+                                <option value="0">Inactivo</option>
+                            </select>
+                        </div>
+                    </div>
+                </section>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideEditUserModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideEditUserModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Actualizar Usuario
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Actualizar usuario
                 </button>
             </div>
         </form>
@@ -536,9 +621,38 @@
 
 @section('scripts')
 <script>
+const userFormServerErrors = @json($errors->any() ? $errors->toArray() : new \stdClass());
+const userFormOldInput = @json(collect(old())->except(['password', 'password_confirmation', '_token'])->all());
+
 document.addEventListener('DOMContentLoaded', function() {
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+
+    bindUserFormAjax(document.getElementById('createUserForm'));
+    bindUserFormAjax(document.getElementById('editUserForm'));
+
+    const errorKeys = userFormServerErrors && typeof userFormServerErrors === 'object'
+        ? Object.keys(userFormServerErrors)
+        : [];
+    if (!errorKeys.length) {
+        return;
+    }
+
+    const isEdit = String(userFormOldInput._method || '').toUpperCase() === 'PUT';
+    if (isEdit) {
+        const editId = userFormOldInput.editing_user_id;
+        if (editId) {
+            const form = document.getElementById('editUserForm');
+            form.action = usersApiUrl(editId);
+            document.getElementById('editUserId').value = editId;
+            fillEditFormFromOld(userFormOldInput);
+        }
+        showEditUserModal();
+        showFormErrors(document.getElementById('editUserForm'), userFormServerErrors);
+    } else {
+        showCreateUserModal();
+        showFormErrors(document.getElementById('createUserForm'), userFormServerErrors);
     }
 });
 
@@ -555,20 +669,171 @@ function csrfToken() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 }
 
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;',
+    }[char]));
+}
+
+function clearFormErrors(form) {
+    if (!form) return;
+    form.querySelectorAll('.pw-field-error').forEach((el) => el.remove());
+    form.querySelectorAll('.pw-field-invalid').forEach((el) => el.classList.remove('pw-field-invalid'));
+    const alertBox = form.querySelector('[data-form-alert]');
+    if (alertBox) {
+        alertBox.classList.add('hidden');
+        alertBox.innerHTML = '';
+    }
+}
+
+function showFormErrors(form, errors, fallbackMessage) {
+    if (!form) return;
+    clearFormErrors(form);
+
+    const fieldErrors = errors && typeof errors === 'object' ? errors : {};
+    const uniqueMessages = [];
+    Object.values(fieldErrors).forEach((msgs) => {
+        (Array.isArray(msgs) ? msgs : [msgs]).forEach((msg) => {
+            if (msg && !uniqueMessages.includes(msg)) uniqueMessages.push(msg);
+        });
+    });
+    if (fallbackMessage && !uniqueMessages.includes(fallbackMessage)) {
+        uniqueMessages.unshift(fallbackMessage);
+    }
+
+    Object.entries(fieldErrors).forEach(([field, msgs]) => {
+        const list = Array.isArray(msgs) ? msgs : [msgs];
+        const input = form.querySelector(`[name="${CSS.escape(field)}"]`);
+        if (!input || !list[0]) return;
+        input.classList.add('pw-field-invalid');
+        const err = document.createElement('p');
+        err.className = 'pw-field-error';
+        err.textContent = list[0];
+        const wrap = input.closest('div');
+        (wrap || input.parentElement).appendChild(err);
+    });
+
+    const alertBox = form.querySelector('[data-form-alert]');
+    if (alertBox && uniqueMessages.length) {
+        alertBox.innerHTML = '<strong>No se pudo guardar. Corrige los campos e inténtalo de nuevo.</strong>'
+            + uniqueMessages.slice(0, 5).map((msg) => `<div>${escapeHtml(msg)}</div>`).join('');
+        alertBox.classList.remove('hidden');
+    }
+
+    const firstInvalid = form.querySelector('.pw-field-invalid');
+    if (firstInvalid) {
+        firstInvalid.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        try { firstInvalid.focus({ preventScroll: true }); } catch (e) { firstInvalid.focus(); }
+    }
+}
+
+function fillEditFormFromOld(oldData) {
+    if (!oldData) return;
+    const setVal = (id, key) => {
+        const el = document.getElementById(id);
+        if (!el || oldData[key] === undefined || oldData[key] === null) return;
+        el.value = String(oldData[key]);
+    };
+    setVal('editNombre', 'name');
+    setVal('editApellido', 'last_name');
+    setVal('editGender', 'gender');
+    setVal('editGenderOther', 'gender_other');
+    setVal('editEmail', 'email');
+    setVal('editDocumentType', 'document_type');
+    setVal('editDocumentNumber', 'document_number');
+    setVal('editBirthDate', 'birth_date');
+    setVal('editPhone', 'phone');
+    setVal('editAddress', 'address');
+    setVal('editHasCorporateEmail', 'has_corporate_email');
+    setVal('editCorporateEmail', 'corporate_email');
+    setVal('editHasCorporatePhone', 'has_corporate_phone');
+    setVal('editCorporatePhone', 'corporate_phone');
+    setVal('editRol', 'role_id');
+    setVal('editCargo', 'cargo_id');
+    setVal('editGrupo', 'grupo_id');
+    setVal('editActive', 'active');
+    toggleGenderOther('edit');
+    toggleCorporateEmail('edit');
+    toggleCorporatePhone('edit');
+}
+
+function bindUserFormAjax(form) {
+    if (!form || form.dataset.ajaxBound === '1') return;
+    form.dataset.ajaxBound = '1';
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearFormErrors(form);
+        const submitBtn = form.querySelector('[type="submit"]');
+        const originalHtml = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Guardando...';
+        }
+        try {
+            const response = await fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': csrfToken(),
+                },
+                body: new FormData(form),
+                credentials: 'same-origin',
+            });
+            const data = await parseJsonResponse(response);
+            if (response.status === 422) {
+                const fieldErrors = data?.errors || {};
+                const hasFields = Object.keys(fieldErrors).length > 0;
+                showFormErrors(form, fieldErrors, hasFields ? null : (data?.message || 'Revisa los datos e inténtalo de nuevo.'));
+                return;
+            }
+            if (response.status === 419) {
+                showFormErrors(form, {}, 'La sesión expiró. Recarga la página e inténtalo de nuevo.');
+                return;
+            }
+            if (!response.ok || !data?.success) {
+                showFormErrors(form, data?.errors || {}, data?.message || 'No se pudo guardar el usuario.');
+                return;
+            }
+            window.location.href = data.redirect || window.location.href;
+        } catch (error) {
+            showFormErrors(form, {}, error?.message || 'Error de conexión. Inténtalo de nuevo.');
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalHtml;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        }
+    });
+}
+
 function showCreateUserModal() {
+    hideEditUserModal();
     document.getElementById('createUserModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function hideCreateUserModal() {
     document.getElementById('createUserModal').classList.add('hidden');
+    document.body.style.overflow = '';
 }
 
 function showEditUserModal() {
+    hideCreateUserModal();
     document.getElementById('editUserModal').classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function hideEditUserModal() {
     document.getElementById('editUserModal').classList.add('hidden');
+    document.body.style.overflow = '';
 }
 
 function toggleGenderOther(prefix) {
@@ -653,6 +918,8 @@ function editUser(id) {
             return data;
         })
         .then(data => {
+            const form = document.getElementById('editUserForm');
+            clearFormErrors(form);
             document.getElementById('editNombre').value = data.name || '';
             document.getElementById('editApellido').value = data.last_name || '';
             setSelectValue('editGender', data.gender || '');
@@ -673,6 +940,9 @@ function editUser(id) {
             setSelectValue('editActive', data.active ? '1' : '0');
             document.getElementById('editPassword').value = '';
             document.getElementById('editPasswordConfirmation').value = '';
+            if (typeof window.refreshPasswordMeters === 'function') {
+                window.refreshPasswordMeters(document.getElementById('editUserForm'));
+            }
 
             toggleGenderOther('edit');
             toggleCorporateEmail('edit');
@@ -699,6 +969,7 @@ function editUser(id) {
             }
 
             document.getElementById('editUserForm').action = usersApiUrl(id);
+            document.getElementById('editUserId').value = String(id);
             showEditUserModal();
             if (typeof lucide !== 'undefined') {
                 lucide.createIcons();

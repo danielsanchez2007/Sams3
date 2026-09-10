@@ -19,6 +19,7 @@
     $hex = ltrim($cardsBgColor, '#'); if (strlen($hex) < 6) $hex = 'ffffff';
     $r = hexdec(substr($hex,0,2)); $g = hexdec(substr($hex,2,2)); $b = hexdec(substr($hex,4,2));
     $cardsBgRgba = "rgba($r, $g, $b, $cardsBgOpacity)";
+    $samsLightweightUi = (bool) config('sams.lightweight_ui', true);
 @endphp
 <!DOCTYPE html>
 <html lang="es">
@@ -34,10 +35,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    @vite('resources/css/app.css')
-    <!-- Tema Prevention World -->
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
         :root {
@@ -52,9 +50,6 @@
         }
     </style>
 
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
     <style>
         [x-cloak] { display: none !important; }
     </style>
@@ -62,7 +57,9 @@
 </head>
 <body class="min-h-screen relative overflow-x-hidden overflow-y-auto bg-[#0a0a0a] pw-typography" data-cards-radius="{{ $cardsRadius }}" data-cards-shadow="{{ $cardsShadow }}" data-cards-style="{{ $cardsStyle }}" data-cards-bg-type="{{ $cardsBgType }}">
     <div id="particles-js" class="fixed inset-0 -z-10"></div>
+    @unless($samsLightweightUi)
     <div id="bubbles" class="fixed inset-0 pointer-events-none z-0"></div>
+    @endunless
     <div class="relative z-10 min-h-screen">
         @yield('content')
     </div>
@@ -73,6 +70,7 @@
         </div>
     </footer>
 
+    @unless($samsLightweightUi)
     <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
     <script>
         function pwLowPowerMode() {
@@ -140,6 +138,7 @@
             }
         });
     </script>
+    @endunless
     <script>
         // Initialize Lucide icons
         if (typeof lucide !== 'undefined') {

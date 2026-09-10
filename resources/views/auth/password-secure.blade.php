@@ -18,7 +18,7 @@
             <div class="text-center mb-8">
                 <h2 class="text-3xl font-bold text-slate-800">Crea tu Contraseña Segura</h2>
                 <p class="text-slate-500 mt-3 text-sm">
-                    Usa al menos 10 caracteres, con mayúsculas, minúsculas, números y un símbolo.
+                    Usa al menos 10 caracteres, con mayúsculas, minúsculas y un número.
                 </p>
             </div>
 
@@ -43,8 +43,8 @@
 
                 <div>
                     <label class="block text-xs font-semibold text-slate-600 mb-2">Nueva Contraseña</label>
-                    <input name="password" type="password" required autocomplete="new-password" minlength="10"
-                        class="w-full bg-white border border-slate-300 rounded-2xl px-5 py-3.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-200 transition-all">
+                    <input name="password" type="password" required autocomplete="new-password" minlength="10" maxlength="72"
+                        class="w-full bg-white border border-slate-300 rounded-2xl px-5 py-3.5 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-[#003087] focus:ring-2 focus:ring-blue-200 transition-all" data-pw-meter="required">
                 </div>
 
                 <div>

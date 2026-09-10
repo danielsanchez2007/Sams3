@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'SAMS - Sistema de GestiÃ³n')</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    @vite('resources/css/app.css')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     @php
         $samsLightweightUi = (bool) config('sams.lightweight_ui', true);
         $uiColors = [
@@ -246,19 +244,28 @@
         $pendingAccessCount = 0;
         $pendingAccessRequests = collect();
         if (auth()->check()) {
-            $pendingQ = \App\Models\User::query()
-                ->with('empresa:id,nombre')
-                ->where('active', false)
-                ->whereNull('role_id')
-                ->whereNotNull('empresa_id');
-            if ($empresaActiva) {
-                $pendingQ->where('empresa_id', $empresaActiva->id);
-            }
-            if (auth()->user()?->empresa_id) {
-                $pendingQ->where('empresa_id', auth()->user()->empresa_id);
-            }
-            $pendingAccessCount = (clone $pendingQ)->count();
-            $pendingAccessRequests = (clone $pendingQ)->latest('id')->limit(6)->get();
+            $pendingCacheKey = 'sams_pending_access_' . (int) auth()->id() . '_' . (int) ($empresaActiva?->id ?? 0);
+            $pendingPayload = \Illuminate\Support\Facades\Cache::remember($pendingCacheKey, 20, function () use ($empresaActiva) {
+                $pendingQ = \App\Models\User::query()
+                    ->select(['id', 'name', 'last_name', 'email', 'empresa_id'])
+                    ->with('empresa:id,nombre')
+                    ->where('active', false)
+                    ->whereNull('role_id')
+                    ->whereNotNull('empresa_id');
+                if ($empresaActiva) {
+                    $pendingQ->where('empresa_id', $empresaActiva->id);
+                }
+                if (auth()->user()?->empresa_id) {
+                    $pendingQ->where('empresa_id', auth()->user()->empresa_id);
+                }
+
+                return [
+                    'count' => (int) (clone $pendingQ)->count(),
+                    'items' => (clone $pendingQ)->latest('id')->limit(6)->get(),
+                ];
+            });
+            $pendingAccessCount = (int) ($pendingPayload['count'] ?? 0);
+            $pendingAccessRequests = collect($pendingPayload['items'] ?? []);
         }
     @endphp
     <style>
@@ -280,7 +287,7 @@
             --pw-bubble-glow: {{ $pwBrandedTheme ? $rgbToRgba($hexToRgb($empresaColor) ?: [59,130,246], 0.35) : 'rgba(59, 130, 246, 0.46)' }};
             --sams-menu-icon-box-bg: {{ $iconBgSoft }};
             --sams-menu-icon-box-border: {{ $iconBorderSoft }};
-            @foreach(['message-square','home','menu','users','shield','briefcase','layers','factory','monitor','server','book-open','archive','clipboard-check','building','settings','file-text','download','user-check','repeat','package-check','file-check-2','sparkles','user','log-out','building-2','undo-2'] as $ik)
+            @foreach(['message-square','home','menu','users','shield','briefcase','layers','factory','monitor','server','book-open','archive','clipboard-check','building','settings','file-text','download','user-check','repeat','package-check','file-check-2','user','log-out','building-2','undo-2'] as $ik)
             --sams-icon-{{ $ik }}: {{ $menuIconColors[$ik] ?? $iconAccentHex }};
             --sams-icon-bg-{{ $ik }}: {{ $menuIconBgColors[$ik] ?? $iconBgSoft }};
             @endforeach
@@ -717,27 +724,56 @@
     @endunless
     <!-- Include Admin Scripts -->
     @include('partials.admin-scripts')
-    <div id="pendingApproveModal" class="fixed inset-0 hidden z-[12000] bg-black/50 items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-xl bg-white p-4">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Aceptar solicitud</h3>
-            <p id="pendingApproveUserText" class="text-sm text-gray-600 mb-3"></p>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-            <select id="pendingApproveRole" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm"></select>
-            <div class="mt-4 flex justify-end gap-2">
-                <button type="button" onclick="closePendingApproveModal()" class="px-3 py-2 text-sm rounded border border-gray-300">Cancelar</button>
-                <button type="button" onclick="submitPendingApprove()" class="px-3 py-2 text-sm rounded bg-green-600 text-white">Aceptar</button>
+    <div id="pendingApproveModal" class="fixed inset-0 hidden z-[12000] items-center justify-center p-4">
+        <div class="pw-modal-content pw-modal-sm">
+            <div class="pw-modal-header">
+                <div class="pw-modal-header-main">
+                    <div class="pw-modal-header-icon" aria-hidden="true">
+                        <i data-lucide="user-check" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="pw-modal-title">Aceptar solicitud</h3>
+                        <p id="pendingApproveUserText" class="pw-modal-subtitle"></p>
+                    </div>
+                </div>
+                <button type="button" class="pw-modal-close" onclick="closePendingApproveModal()" aria-label="Cerrar">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="pw-modal-body">
+                <label>Rol</label>
+                <select id="pendingApproveRole" class="w-full"></select>
+            </div>
+            <div class="pw-modal-footer">
+                <button type="button" onclick="closePendingApproveModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">Cancelar</button>
+                <button type="button" onclick="submitPendingApprove()" class="pw-btn-success px-4 py-2.5 rounded-lg text-sm">Aceptar</button>
             </div>
         </div>
     </div>
 
-    <div id="pendingRejectModal" class="fixed inset-0 hidden z-[12000] bg-black/50 items-center justify-center p-4">
-        <div class="w-full max-w-md rounded-xl bg-white p-4">
-            <h3 class="text-base font-semibold text-gray-900 mb-2">Rechazar solicitud</h3>
-            <p class="text-sm text-gray-600 mb-3">Escribe el motivo del rechazo (obligatorio).</p>
-            <textarea id="pendingRejectReason" rows="4" class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm" placeholder="Motivo del rechazo"></textarea>
-            <div class="mt-4 flex justify-end gap-2">
-                <button type="button" onclick="closePendingRejectModal()" class="px-3 py-2 text-sm rounded border border-gray-300">Cancelar</button>
-                <button type="button" onclick="submitPendingReject()" class="px-3 py-2 text-sm rounded bg-red-600 text-white">Rechazar</button>
+    <div id="pendingRejectModal" class="fixed inset-0 hidden z-[12000] items-center justify-center p-4">
+        <div class="pw-modal-content pw-modal-sm">
+            <div class="pw-modal-header">
+                <div class="pw-modal-header-main">
+                    <div class="pw-modal-header-icon" aria-hidden="true">
+                        <i data-lucide="user-x" class="w-4 h-4"></i>
+                    </div>
+                    <div>
+                        <h3 class="pw-modal-title">Rechazar solicitud</h3>
+                        <p class="pw-modal-subtitle">Escribe el motivo del rechazo (obligatorio).</p>
+                    </div>
+                </div>
+                <button type="button" class="pw-modal-close" onclick="closePendingRejectModal()" aria-label="Cerrar">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            <div class="pw-modal-body">
+                <label>Motivo</label>
+                <textarea id="pendingRejectReason" rows="4" class="w-full" placeholder="Motivo del rechazo"></textarea>
+            </div>
+            <div class="pw-modal-footer">
+                <button type="button" onclick="closePendingRejectModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">Cancelar</button>
+                <button type="button" onclick="submitPendingReject()" class="pw-btn-danger px-4 py-2.5 rounded-lg text-sm">Rechazar</button>
             </div>
         </div>
     </div>
@@ -790,25 +826,38 @@
                 }
 
                 const wrap = document.createElement('div');
-                wrap.className = 'pw-image-picker-actions mt-2 flex flex-wrap gap-2';
+                wrap.className = 'pw-upload-box-actions pw-image-picker-actions';
                 wrap.setAttribute('data-for', key);
 
                 const btnCam = document.createElement('button');
                 btnCam.type = 'button';
-                btnCam.className = 'px-3 py-1.5 rounded-lg text-xs font-medium border border-sky-300 bg-sky-50 text-sky-700 hover:bg-sky-100';
+                btnCam.className = 'pw-upload-btn pw-upload-btn--camera';
                 btnCam.textContent = 'Tomar foto';
                 btnCam.addEventListener('click', function () { openPicker(input, true); });
 
                 const btnFile = document.createElement('button');
                 btnFile.type = 'button';
-                btnFile.className = 'px-3 py-1.5 rounded-lg text-xs font-medium border border-gray-300 bg-gray-50 text-gray-700 hover:bg-gray-100';
-                btnFile.textContent = 'Elegir archivo';
+                btnFile.className = 'pw-upload-btn';
+                btnFile.textContent = 'Subir archivo';
                 btnFile.addEventListener('click', function () { openPicker(input, false); });
+
+                const nameEl = document.createElement('span');
+                nameEl.className = 'pw-upload-filename';
+                nameEl.textContent = 'Ningún archivo seleccionado';
 
                 wrap.appendChild(btnCam);
                 wrap.appendChild(btnFile);
 
+                input.classList.add('pw-file-enhanced');
                 input.insertAdjacentElement('afterend', wrap);
+                wrap.insertAdjacentElement('afterend', nameEl);
+
+                input.addEventListener('change', function () {
+                    nameEl.textContent = (input.files && input.files[0])
+                        ? input.files[0].name
+                        : 'Ningún archivo seleccionado';
+                });
+
                 input.dataset.cameraUiReady = '1';
             }
 
@@ -829,12 +878,22 @@
 
             document.addEventListener('DOMContentLoaded', function () {
                 enableCameraOption(document);
+                let cameraScanQueued = false;
                 const observer = new MutationObserver(function (mutations) {
-                    mutations.forEach(function (m) {
-                        m.addedNodes.forEach(function (n) {
-                            if (n && n.nodeType === 1) enableCameraOption(n);
-                        });
-                    });
+                    if (cameraScanQueued) return;
+                    for (let i = 0; i < mutations.length; i++) {
+                        const nodes = mutations[i].addedNodes;
+                        for (let j = 0; j < nodes.length; j++) {
+                            if (nodes[j] && nodes[j].nodeType === 1) {
+                                cameraScanQueued = true;
+                                requestAnimationFrame(function () {
+                                    cameraScanQueued = false;
+                                    enableCameraOption(document);
+                                });
+                                return;
+                            }
+                        }
+                    }
                 });
                 observer.observe(document.body, { childList: true, subtree: true });
             });

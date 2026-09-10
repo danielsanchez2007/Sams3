@@ -21,8 +21,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prevention World | Plataforma Institucional</title>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap');
@@ -479,12 +477,6 @@
 
         function openPrivacyModal() { openModal('privacyModal'); }
         function openTermsModal() { openModal('termsModal'); }
-
-        document.querySelectorAll('.fixed.inset-0').forEach(modal => {
-            modal.addEventListener('click', e => {
-                if (e.target === modal) closeModal(modal.id);
-            });
-        });
     </script>
 </body>
 </html>

@@ -107,15 +107,16 @@ class EquipoInventarioController extends Controller
                 fn ($t) => $t->where('nombre', 'like', 'Oficina - %')
             ))
             ->with([
-                'tipoEquipo',
-                'claseEquipo',
-                'empresa',
-                'sede',
-                'bodega',
-                'fabricante',
-                'imagenes',
-                'asignacion',
-                'prestamoTemporalItems.prestamo',
+                'tipoEquipo:id,nombre,alias',
+                'claseEquipo:id,nombre,alias,tipo_equipo_id',
+                'empresa:id,nombre',
+                'sede:id,nombre',
+                'bodega:id,nombre',
+                'fabricante:id,name',
+                'imagenes:id,equipo_id,tipo,path',
+                'asignacion:id,equipo_id,user_id',
+                'prestamoTemporalItems:id,prestamo_id,equipo_id',
+                'prestamoTemporalItems.prestamo:id,estado',
             ])
             ->when($empresaId, function ($q) use ($empresaId, $esEmpresaPrincipal) {
                 if ($esEmpresaPrincipal) {

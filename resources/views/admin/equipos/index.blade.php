@@ -249,9 +249,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
         btn.addEventListener('click', open);
         modal.querySelectorAll('[data-close-codigos="1"]').forEach(el => el.addEventListener('click', close));
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') close();
-        });
     }
 
     // Eliminar equipo: quita de la tabla al instante y refresca para confirmar.

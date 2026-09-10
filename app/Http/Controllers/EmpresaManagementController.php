@@ -21,9 +21,12 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 
 class EmpresaManagementController extends Controller
 {
+    private const EMPRESA_IMAGE_MAX_KB = 10240;
+
     private function authz(): EmpresaModuleAuthorization
     {
         return new EmpresaModuleAuthorization();
@@ -251,8 +254,28 @@ class EmpresaManagementController extends Controller
     {
         $this->assertCanEditModule('empresa');
         $request->validate([
-            'address' => 'required|string|max:600',
+            'address' => 'nullable|string|max:600',
+            'maps_url' => 'nullable|string|max:500',
         ]);
+
+        $mapsUrl = trim((string) $request->input('maps_url', ''));
+        if ($mapsUrl !== '') {
+            $fromUrl = $this->coordsFromMapsUrl($mapsUrl);
+            if ($fromUrl) {
+                return response()->json([
+                    'success' => true,
+                    'data' => $fromUrl,
+                ]);
+            }
+        }
+
+        $address = trim((string) $request->input('address', ''));
+        if ($address === '') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Indica una dirección o un enlace de Google Maps.',
+            ], 422);
+        }
 
         $apiKey = config('services.google.maps_api_key');
         if (!$apiKey) {
@@ -262,7 +285,6 @@ class EmpresaManagementController extends Controller
             ], 422);
         }
 
-        $address = trim($request->input('address'));
         $cacheKey = 'geocode:' . sha1(mb_strtolower($address));
 
         $coords = Cache::remember($cacheKey, now()->addDays(30), function () use ($address, $apiKey) {
@@ -338,28 +360,11 @@ class EmpresaManagementController extends Controller
     public function storeEmpresa(Request $request)
     {
         $this->ensureGlobalAdmin();
-        $request->validate([
-            'nombre' => 'required|string|max:255|unique:empresas,nombre',
-            'nit' => 'required|string|max:50|unique:empresas,nit',
-            'color_primario' => 'required|string|max:20',
-            'color_secundario_1' => 'required|string|max:20',
-            'color_secundario_2' => 'required|string|max:20',
-            'pais' => 'required|string|max:120',
-            'departamento' => 'required|string|max:120',
-            'municipio' => 'nullable|string|max:120',
-            'ciudad' => 'required|string|max:120',
-            'direccion' => 'required|string|max:500',
-            'google_maps_url' => 'nullable|url|max:500',
-            'latitud' => 'nullable|numeric|required_without:google_maps_url',
-            'longitud' => 'nullable|numeric|required_without:google_maps_url',
-            'altitud' => 'nullable|numeric',
-            'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'sitio_web' => 'nullable|string|max:255',
-            'logo_principal_file' => 'nullable|image|max:4096',
-            'logo_secundario_file' => 'nullable|image|max:4096',
-            'foto_empresa' => 'nullable|image|max:4096',
-        ]);
+        $request->validate(
+            $this->empresaFormRules(),
+            $this->empresaFormMessages(),
+            $this->empresaFormAttributes()
+        );
 
         if ($request->hasFile('logo_principal_file') && $request->hasFile('logo_secundario_file')) {
             return back()->withInput()->withErrors(['logo_principal_file' => 'Solo puedes cargar un logo (principal o secundario).']);
@@ -391,13 +396,15 @@ class EmpresaManagementController extends Controller
             ]);
         }
 
+        $colores = $this->resolvedBrandColors($request);
+        [$latitud, $longitud] = $this->coordsFromRequest($request);
         $empresa = new Empresa();
         $empresa->fill([
             'nombre' => $request->nombre,
             'prefijo' => $prefijo,
-            'color_primario' => $this->normalizeHex($request->color_primario),
-            'color_secundario_1' => $this->normalizeHex($request->color_secundario_1),
-            'color_secundario_2' => $this->normalizeHex($request->color_secundario_2),
+            'color_primario' => $colores['color_primario'],
+            'color_secundario_1' => $colores['color_secundario_1'],
+            'color_secundario_2' => $colores['color_secundario_2'],
             'color_extra_4' => '#FFFFFF',
             'color_extra_5' => '#000000',
             'pais' => $request->pais,
@@ -406,8 +413,8 @@ class EmpresaManagementController extends Controller
             'ciudad' => $request->ciudad,
             'direccion' => $request->direccion,
             'google_maps_url' => $request->google_maps_url,
-            'latitud' => $request->latitud,
-            'longitud' => $request->longitud,
+            'latitud' => $latitud,
+            'longitud' => $longitud,
             'altitud' => $request->altitud,
             'nit' => $request->nit,
             'telefono' => $request->telefono,
@@ -428,31 +435,19 @@ class EmpresaManagementController extends Controller
             ->with('empresa_nueva_nombre', $empresa->nombre);
     }
 
+    public function showEmpresa(Empresa $empresa)
+    {
+        return redirect()->route('empresa.gestion');
+    }
+
     public function updateEmpresa(Request $request, Empresa $empresa)
     {
         $this->ensureGlobalAdmin();
-        $request->validate([
-            'nombre' => 'required|string|max:255|unique:empresas,nombre,' . $empresa->id,
-            'nit' => 'required|string|max:50|unique:empresas,nit,' . $empresa->id,
-            'color_primario' => 'required|string|max:20',
-            'color_secundario_1' => 'required|string|max:20',
-            'color_secundario_2' => 'required|string|max:20',
-            'pais' => 'required|string|max:120',
-            'departamento' => 'required|string|max:120',
-            'municipio' => 'nullable|string|max:120',
-            'ciudad' => 'required|string|max:120',
-            'direccion' => 'required|string|max:500',
-            'google_maps_url' => 'nullable|url|max:500',
-            'latitud' => 'nullable|numeric|required_without:google_maps_url',
-            'longitud' => 'nullable|numeric|required_without:google_maps_url',
-            'altitud' => 'nullable|numeric',
-            'telefono' => 'nullable|string|max:20',
-            'email' => 'nullable|email|max:255',
-            'sitio_web' => 'nullable|string|max:255',
-            'logo_principal_file' => 'nullable|image|max:4096',
-            'logo_secundario_file' => 'nullable|image|max:4096',
-            'foto_empresa' => 'nullable|image|max:4096',
-        ]);
+        $request->validate(
+            $this->empresaFormRules((int) $empresa->id),
+            $this->empresaFormMessages(),
+            $this->empresaFormAttributes()
+        );
 
         if ($request->hasFile('logo_principal_file') && $request->hasFile('logo_secundario_file')) {
             return back()->withInput()->withErrors(['logo_principal_file' => 'Solo puedes cargar un logo (principal o secundario).']);
@@ -481,12 +476,14 @@ class EmpresaManagementController extends Controller
             ]);
         }
 
+        $colores = $this->resolvedBrandColors($request, $empresa);
+        [$latitud, $longitud] = $this->coordsFromRequest($request);
         $empresa->update([
             'nombre' => $request->nombre,
             'prefijo' => $prefijo,
-            'color_primario' => $this->normalizeHex($request->color_primario),
-            'color_secundario_1' => $this->normalizeHex($request->color_secundario_1),
-            'color_secundario_2' => $this->normalizeHex($request->color_secundario_2),
+            'color_primario' => $colores['color_primario'],
+            'color_secundario_1' => $colores['color_secundario_1'],
+            'color_secundario_2' => $colores['color_secundario_2'],
             'color_extra_4' => '#FFFFFF',
             'color_extra_5' => '#000000',
             'pais' => $request->pais,
@@ -495,8 +492,8 @@ class EmpresaManagementController extends Controller
             'ciudad' => $request->ciudad,
             'direccion' => $request->direccion,
             'google_maps_url' => $request->google_maps_url,
-            'latitud' => $request->latitud,
-            'longitud' => $request->longitud,
+            'latitud' => $latitud,
+            'longitud' => $longitud,
             'altitud' => $request->altitud,
             'nit' => $request->nit,
             'telefono' => $request->telefono,
@@ -563,7 +560,7 @@ class EmpresaManagementController extends Controller
             'name' => 'required|string|max:255',
             'last_name' => 'nullable|string|max:255',
             'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:8|confirmed',
+            'password' => ['required', 'confirmed', 'max:72', Password::defaults()],
         ]);
 
         $prefijo = $empresa->prefijo
@@ -785,6 +782,93 @@ class EmpresaManagementController extends Controller
         return config('sams.default_modulos', []);
     }
 
+    private function empresaFormRules(?int $empresaId = null): array
+    {
+        $nombreUnique = Rule::unique('empresas', 'nombre');
+        $nitUnique = Rule::unique('empresas', 'nit');
+        if ($empresaId) {
+            $nombreUnique = $nombreUnique->ignore($empresaId);
+            $nitUnique = $nitUnique->ignore($empresaId);
+        }
+
+        $image = 'nullable|image|mimes:jpeg,jpg,png,webp|max:'.self::EMPRESA_IMAGE_MAX_KB;
+
+        return [
+            'nombre' => ['required', 'string', 'max:255', $nombreUnique],
+            'nit' => ['required', 'string', 'max:50', $nitUnique],
+            'color_primario' => 'nullable|string|max:20',
+            'color_secundario_1' => 'nullable|string|max:20',
+            'color_secundario_2' => 'nullable|string|max:20',
+            'pais' => 'required|string|max:120',
+            'departamento' => 'required|string|max:120',
+            'municipio' => 'nullable|string|max:120',
+            'ciudad' => 'required|string|max:120',
+            'direccion' => 'required|string|max:500',
+            'google_maps_url' => 'nullable|string|max:500',
+            'latitud' => 'nullable|numeric|required_without:google_maps_url',
+            'longitud' => 'nullable|numeric|required_without:google_maps_url',
+            'altitud' => 'nullable|numeric',
+            'telefono' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:255',
+            'sitio_web' => 'nullable|string|max:255',
+            'logo_principal_file' => $image,
+            'logo_secundario_file' => $image,
+            'foto_empresa' => $image,
+        ];
+    }
+
+    private function empresaFormMessages(): array
+    {
+        return [
+            'foto_empresa.max' => 'La foto de la empresa no puede superar 10 MB. Elige una imagen más liviana.',
+            'foto_empresa.image' => 'La foto de la empresa debe ser una imagen JPG, PNG o WebP.',
+            'foto_empresa.mimes' => 'La foto de la empresa debe ser JPG, PNG o WebP.',
+            'logo_principal_file.max' => 'El logo principal no puede superar 10 MB.',
+            'logo_secundario_file.max' => 'El logo secundario no puede superar 10 MB.',
+            'logo_principal_file.image' => 'El logo principal debe ser una imagen JPG, PNG o WebP.',
+            'logo_secundario_file.image' => 'El logo secundario debe ser una imagen JPG, PNG o WebP.',
+            'latitud.required_without' => 'Indica el enlace de Google Maps o la latitud y la longitud. La altitud es opcional.',
+            'longitud.required_without' => 'Indica el enlace de Google Maps o la latitud y la longitud. La altitud es opcional.',
+        ];
+    }
+
+    private function empresaFormAttributes(): array
+    {
+        return [
+            'nombre' => 'nombre',
+            'nit' => 'NIT',
+            'color_primario' => 'color primario',
+            'color_secundario_1' => 'color secundario 1',
+            'color_secundario_2' => 'color secundario 2',
+            'pais' => 'país',
+            'departamento' => 'departamento',
+            'municipio' => 'municipio',
+            'ciudad' => 'ciudad',
+            'direccion' => 'dirección',
+            'google_maps_url' => 'URL de Google Maps',
+            'latitud' => 'latitud',
+            'longitud' => 'longitud',
+            'foto_empresa' => 'foto de la empresa',
+            'logo_principal_file' => 'logo principal',
+            'logo_secundario_file' => 'logo secundario',
+        ];
+    }
+
+    private function resolvedBrandColors(Request $request, ?Empresa $empresa = null): array
+    {
+        return [
+            'color_primario' => $this->normalizeHex($request->color_primario)
+                ?: $this->normalizeHex($empresa?->color_primario)
+                ?: '#F97316',
+            'color_secundario_1' => $this->normalizeHex($request->color_secundario_1)
+                ?: $this->normalizeHex($empresa?->color_secundario_1)
+                ?: '#67E8F9',
+            'color_secundario_2' => $this->normalizeHex($request->color_secundario_2)
+                ?: $this->normalizeHex($empresa?->color_secundario_2)
+                ?: '#075479',
+        ];
+    }
+
     private function normalizeHex(?string $value): ?string
     {
         $v = strtoupper(trim((string) $value));
@@ -800,6 +884,90 @@ class EmpresaManagementController extends Controller
         if (preg_match('/^#([A-F0-9]{6})$/', $v)) {
             return $v;
         }
+        return null;
+    }
+
+    /**
+     * @return array{0: mixed, 1: mixed}
+     */
+    private function coordsFromRequest(Request $request): array
+    {
+        $lat = $request->input('latitud');
+        $lng = $request->input('longitud');
+        if ($lat !== null && $lat !== '' && $lng !== null && $lng !== '') {
+            return [$lat, $lng];
+        }
+
+        $url = trim((string) $request->input('google_maps_url', ''));
+        if ($url === '') {
+            return [$lat, $lng];
+        }
+
+        $parsed = $this->coordsFromMapsUrl($url);
+
+        return [
+            $parsed['lat'] ?? $lat,
+            $parsed['lng'] ?? $lng,
+        ];
+    }
+
+    /**
+     * @return array{lat: float, lng: float}|null
+     */
+    private function coordsFromMapsUrl(string $url): ?array
+    {
+        $from = $this->parseLatLngInText($url);
+        if ($from) {
+            return $from;
+        }
+
+        if (! preg_match('#^https?://#i', $url)) {
+            return null;
+        }
+
+        $cacheKey = 'maps_url_coords:' . sha1(mb_strtolower($url));
+        $cached = Cache::get($cacheKey);
+        if (is_array($cached) && isset($cached['lat'], $cached['lng'])) {
+            return $cached;
+        }
+
+        try {
+            $res = Http::withHeaders([
+                'User-Agent' => 'Mozilla/5.0 (compatible; SAMS/1.0)',
+            ])->withOptions([
+                'allow_redirects' => ['max' => 10],
+            ])->timeout(8)->get($url);
+
+            $final = (string) ($res->effectiveUri() ?? '');
+            $from = $this->parseLatLngInText($final);
+            if ($from) {
+                Cache::put($cacheKey, $from, now()->addDays(30));
+
+                return $from;
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{lat: float, lng: float}|null
+     */
+    private function parseLatLngInText(string $text): ?array
+    {
+        if (preg_match('/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/', $text, $m)
+            || preg_match('/!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/', $text, $m)
+            || preg_match('/[?&](?:q|query|ll)=(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/i', $text, $m)
+        ) {
+            $lat = (float) $m[1];
+            $lng = (float) $m[2];
+            if ($lat >= -90 && $lat <= 90 && $lng >= -180 && $lng <= 180) {
+                return ['lat' => $lat, 'lng' => $lng];
+            }
+        }
+
         return null;
     }
 

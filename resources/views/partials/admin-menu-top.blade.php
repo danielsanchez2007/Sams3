@@ -112,7 +112,6 @@
             </button>
             <div class="top-dropdown-panel absolute left-0 top-full mt-1 py-2 bg-white rounded-xl shadow-xl border border-gray-200 min-w-[180px] z-[100] hidden group-hover:block group-[.dropdown-open]:block">
                 @if($empresaHasModulo('exportar') || $empresaHasModulo('hoja_vida') || $empresaHasModulo('inspeccion') || $isPreventionWorldAdmin)<a href="{{ route('formatos.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="file-text" class="w-4 h-4" data-icon="file-text"></i> Formatos</a>@endif
-                @if($empresaHasModulo('hoja_vida') || $isPreventionWorldAdmin)<a href="{{ route('hoja-vida.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="file-text" class="w-4 h-4" data-icon="file-text"></i> Hoja de Vida</a>@endif
                 @if($empresaHasModulo('inspeccion') || $isPreventionWorldAdmin)<a href="{{ route('inspeccion.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="file-text" class="w-4 h-4" data-icon="file-text"></i> Inspección</a>@endif
                 @if($empresaHasModulo('exportar') || $isPreventionWorldAdmin)<a href="{{ route('exportar.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="download" class="w-4 h-4" data-icon="download"></i> Exportar</a>@endif
             </div>
@@ -140,10 +139,6 @@
             <span>Prestamos temporales</span>
         </a>
         @endif
-        <a href="{{ route('gemini.index') }}" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('gemini.*') ? 'top-menu-item--active' : '' }}" >
-            <i data-lucide="sparkles" class="w-4 h-4" data-icon="sparkles"></i>
-            <span>Asistente</span>
-        </a>
         <a href="{{ route('profile.show') }}" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('profile.*') ? 'top-menu-item--active' : '' }}" >
             <i data-lucide="user" class="w-4 h-4" data-icon="user"></i>
             <span>Mi Perfil</span>

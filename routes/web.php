@@ -26,7 +26,6 @@ use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AsignarController;
-use App\Http\Controllers\GeminiChatController;
 use App\Http\Controllers\SugerenciaController;
 use App\Http\Controllers\ModoOficinaController;
 use App\Http\Controllers\PrestamoTemporalController;
@@ -85,6 +84,10 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
         Route::get('/plantilla/{plantilla}/reemplazar', [FormatosController::class, 'formReemplazar'])->name('reemplazar.form')->whereNumber('plantilla');
         Route::post('/plantilla/{plantilla}/reemplazar', [FormatosController::class, 'reemplazar'])->name('reemplazar')->whereNumber('plantilla');
         Route::get('/{plantilla}/download', [FormatosController::class, 'download'])->name('download')->whereNumber('plantilla');
+        Route::get('/clase/{clase}', [FormatosController::class, 'clase'])->name('clase')->whereNumber('clase');
+        Route::get('/clase/{clase}/equipo/{equipo}', [FormatosController::class, 'show'])->name('show')->whereNumber('clase')->whereNumber('equipo');
+        Route::get('/clase/{clase}/equipo/{equipo}/html', [FormatosController::class, 'html'])->name('html')->whereNumber('clase')->whereNumber('equipo');
+        Route::get('/clase/{clase}/equipo/{equipo}/pdf', [FormatosController::class, 'pdf'])->name('pdf')->whereNumber('clase')->whereNumber('equipo');
     });
 
     Route::prefix('hoja-vida')->name('hoja-vida.')->group(function () {
@@ -157,10 +160,6 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
     Route::get('/prestamos-temporales/{prestamo}/revisar', [PrestamoTemporalController::class, 'formRevisar'])->name('prestamos-temporales.revisar.form')->whereNumber('prestamo');
     Route::post('/prestamos-temporales/{prestamo}/revisar', [PrestamoTemporalController::class, 'revisar'])->name('prestamos-temporales.revisar')->whereNumber('prestamo');
 
-    // Asistente Gemini (chat con voz)
-    Route::get('/asistente', [GeminiChatController::class, 'index'])->name('gemini.index');
-    Route::post('/asistente/chat', [GeminiChatController::class, 'chat'])->middleware('throttle:ai-chat')->name('gemini.chat');
-
     // Rutas de usuarios
     Route::get('/users/complete', [UserController::class, 'complete'])->name('users.complete');
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
@@ -231,6 +230,7 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
     // Empresa CRUD
     Route::post('/empresa', [EmpresaManagementController::class, 'storeEmpresa'])->name('empresa.store');
     Route::get('/empresa/{empresa}/edit', [EmpresaManagementController::class, 'editEmpresa'])->name('empresa.edit');
+    Route::get('/empresa/{empresa}', [EmpresaManagementController::class, 'showEmpresa'])->whereNumber('empresa')->name('empresa.show');
     Route::put('/empresa/{empresa}', [EmpresaManagementController::class, 'updateEmpresa'])->name('empresa.update');
     Route::delete('/empresa/{empresa}', [EmpresaManagementController::class, 'destroyEmpresa'])->name('empresa.destroy');
     Route::post('/empresa/{empresa}/toggle-status', [EmpresaManagementController::class, 'toggleEmpresaStatus'])->name('empresa.toggle-status');

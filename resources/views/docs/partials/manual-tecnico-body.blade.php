@@ -93,7 +93,6 @@
         <tr><td><a href="#sec-17">17. Archivos y límites PHP</a></td><td class="toc-num">17</td></tr>
         <tr><td><a href="#sec-18">18. Generación PDF</a></td><td class="toc-num">18</td></tr>
         <tr><td><a href="#sec-19">19. Excel (Maatwebsite)</a></td><td class="toc-num">19</td></tr>
-        <tr><td><a href="#sec-20">20. Asistente IA</a></td><td class="toc-num">20</td></tr>
         <tr><td><a href="#sec-21">21. Dependencias PHP (producción)</a></td><td class="toc-num">21</td></tr>
         <tr><td><a href="#sec-22">22. Dependencias PHP (desarrollo)</a></td><td class="toc-num">22</td></tr>
         <tr><td><a href="#sec-23">23. Dependencias JavaScript</a></td><td class="toc-num">23</td></tr>
@@ -123,7 +122,7 @@
 
 <h2 id="sec-2">2. Alcance y audiencia</h2>
 <h3>2.1 Alcance</h3>
-<p>Incluye: aplicación monolítica Laravel, base de datos MySQL, almacenamiento en disco <code>public</code>, generación PDF/Excel, panel administrativo, multi-empresa, roles y permisos, asistente IA opcional.</p>
+<p>Incluye: aplicación monolítica Laravel, base de datos MySQL, almacenamiento en disco <code>public</code>, generación PDF/Excel, panel administrativo, multi-empresa, roles y permisos.</p>
 <p>Excluye: políticas corporativas de Prevention World, procedimientos de campo (inspección física), infraestructura de red del cliente y gestión de credenciales en producción.</p>
 <h3>2.2 Audiencia</h3>
 <table>
@@ -164,7 +163,6 @@
     <li><strong>Bajas, auditoría y material didáctico</strong> como submódulos de equipos.</li>
     <li><strong>Gestión organizacional:</strong> sedes, bodegas, oficinas, espacios, cargos, grupos.</li>
     <li><strong>Panel administrativo</strong> con estadísticas y gráficos.</li>
-    <li><strong>Asistente IA opcional</strong> (Gemini, Groq, OpenRouter) con datos en vivo del sistema.</li>
 </ul>
 <table>
     <thead><tr><th>Componente</th><th>Tecnología</th></tr></thead>
@@ -187,7 +185,7 @@
 ├─────────────────────────────────────────────────────────┤
 │  Middleware: auth, CSRF, SecurityHeaders, perfil, pwd   │
 ├─────────────────────────────────────────────────────────┤
-│  Dominio: Services (EmpresaContext, AiChat, Codigos…)   │
+│  Dominio: Services (EmpresaContext, Codigos…)           │
 │           Policies (UserPolicy, EquipoPolicy)           │
 ├─────────────────────────────────────────────────────────┤
 │  Persistencia: Eloquent Models + MySQL                  │
@@ -260,8 +258,6 @@ php artisan storage:link</pre>
         <tr><td><code>FILESYSTEM_DISK</code></td><td>Disco por defecto; archivos públicos en <code>public</code></td></tr>
         <tr><td><code>SESSION_*</code>, <code>CACHE_*</code>, <code>QUEUE_*</code></td><td>Sesión, caché y colas</td></tr>
         <tr><td><code>MAIL_*</code></td><td>Envío de correos (recuperación contraseña)</td></tr>
-        <tr><td><code>GEMINI_API_KEY</code>, <code>GROQ_API_KEY</code>, <code>OPENROUTER_API_KEY</code></td><td>Proveedores del asistente IA</td></tr>
-        <tr><td><code>AI_CHAT_PROVIDERS</code>, <code>AI_CHAT_MAX_TOTAL_SECONDS</code></td><td>Configuración del servicio IA</td></tr>
         <tr><td><code>GOOGLE_MAPS_API_KEY</code></td><td>Geocodificación en gestión de empresa</td></tr>
         <tr><td><code>SAMS_ALLOW_REGISTRATION</code></td><td>Registro público (default: false)</td></tr>
         <tr><td><code>SAMS_LIGHTWEIGHT_UI</code></td><td>UI sin partículas/burbujas (default: true)</td></tr>
@@ -278,9 +274,6 @@ php artisan storage:link</pre>
         <tr><td><code>config/filesystems.php</code></td><td>Discos local, public, S3</td></tr>
         <tr><td><code>config/auth.php</code></td><td>Guards y providers de autenticación</td></tr>
         <tr><td><code>config/sams.php</code></td><td>Módulos, logos default, registro, UI ligera, TTL códigos</td></tr>
-        <tr><td><code>config/ai-chat.php</code></td><td>Proveedores IA, timeouts, orden de fallback</td></tr>
-        <tr><td><code>config/sams-assistant.php</code></td><td>Conocimiento base del asistente</td></tr>
-        <tr><td><code>config/gemini.php</code></td><td>Configuración legacy Gemini</td></tr>
     </tbody>
 </table>
 <h3>8.1 Inventario <code>config/*.php</code></h3>
@@ -407,7 +400,6 @@ php artisan storage:link</pre>
         <tr><td>Sedes</td><td><code>sede</code></td><td>Ubicaciones físicas de la empresa</td></tr>
         <tr><td>Bodegas</td><td><code>bodega</code></td><td>Almacenes vinculados a sedes</td></tr>
         <tr><td>Sugerencias</td><td>—</td><td>Avisos de cumplimiento por empresa (<code>AvisoEmpresa</code>)</td></tr>
-        <tr><td>Asistente IA</td><td>—</td><td>Chat con contexto del sistema (API keys opcionales)</td></tr>
         <tr><td>Modo oficina</td><td>—</td><td>Vista simplificada para demostración (<code>VistaOficina</code>)</td></tr>
     </tbody>
 </table>
@@ -528,15 +520,6 @@ php artisan storage:link</pre>
 <h2 id="sec-19">19. Excel (Maatwebsite)</h2>
 <p>Importación y exportación XLSX/CSV mediante PhpSpreadsheet. Para volúmenes grandes: colas (<code>ShouldQueue</code>) y lectura por chunks. Almacenamiento temporal en disco <code>public</code> con validación MIME.</p>
 
-<h2 id="sec-20">20. Asistente IA</h2>
-<ul>
-    <li><strong>Ruta:</strong> <code>GET /asistente</code> — vista chat.</li>
-    <li><strong>API:</strong> <code>POST /asistente/chat</code> — JSON + CSRF.</li>
-    <li><strong>Proveedores:</strong> Gemini, Groq, OpenRouter (orden configurable).</li>
-    <li><strong>Datos en vivo:</strong> <code>SamsLiveDataReporter</code> ejecuta consultas agregadas seguras.</li>
-    <li><strong>Manual técnico:</strong> admin global puede solicitar descarga PDF/HTML desde el chat.</li>
-</ul>
-
 <h2 id="sec-21">21. Dependencias PHP — producción</h2>
 <table class="data">
     <thead><tr><th>Paquete</th><th>Restricción</th><th>Instalada (lock)</th></tr></thead>
@@ -622,7 +605,7 @@ storage/app/public/     # Archivos subidos</pre>
         <tr><td>Formatos / HV / inspección / export</td><td><code>FormatosController</code>, <code>HojaVidaController</code>, <code>InspeccionController</code>, <code>ExportarController</code></td></tr>
         <tr><td>Asignar / préstamos</td><td><code>AsignarController</code>, <code>PrestamoTemporalController</code></td></tr>
         <tr><td>Modo oficina / sugerencias</td><td><code>ModoOficinaController</code>, <code>SugerenciaController</code></td></tr>
-        <tr><td>IA / documentación</td><td><code>GeminiChatController</code>, <code>ManualTecnicoController</code></td></tr>
+        <tr><td>Documentación</td><td><code>ManualTecnicoController</code></td></tr>
         <tr><td>Auth / perfil</td><td><code>LoginController</code>, <code>RegisterController</code>, <code>ForcedPasswordController</code>, <code>ProfileController</code></td></tr>
     </tbody>
 </table>
@@ -705,7 +688,6 @@ storage/app/public/     # Archivos subidos</pre>
     <li><strong>Condición:</strong> usuario autenticado con <code>empresa_id === null</code> (administrador global).</li>
     <li><strong>HTML:</strong> <code>GET /admin/docs/manual-tecnico</code> — ruta <code>admin.docs.manual-tecnico</code>.</li>
     <li><strong>PDF:</strong> <code>GET /admin/docs/manual-tecnico.pdf</code> — ruta <code>admin.docs.manual-tecnico-pdf</code>.</li>
-    <li><strong>Asistente:</strong> puede ofrecer enlace de descarga tras solicitud en chat.</li>
 </ul>
 
 <footer class="muted" style="margin-top:2.5rem;border-top:2px solid #cbd5e1;padding-top:1rem;">

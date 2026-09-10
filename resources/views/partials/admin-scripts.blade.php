@@ -48,7 +48,7 @@
         var messageEl = document.getElementById('pwConfirmMessage');
         var okBtn = document.getElementById('pwConfirmOk');
         var cancelBtn = document.getElementById('pwConfirmCancel');
-        var backdrop = document.getElementById('pwConfirmBackdrop');
+        var closeBtn = document.getElementById('pwConfirmClose');
         if (!modal || !okBtn || !cancelBtn) return;
         var title = options.title || 'Confirmar acción';
         var message = options.message || '¿Estás seguro de que deseas continuar?';
@@ -75,9 +75,16 @@
         };
         okBtn.onclick = handleConfirm;
         cancelBtn.onclick = close;
-        backdrop.onclick = close;
-        modal.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') close();
+        if (closeBtn) closeBtn.onclick = close;
+    }
+
+    function initProfessionalModals() {
+        var selector = 'div[id$="Modal"], div[id$="-modal"], #pwConfirmModal';
+
+        document.querySelectorAll(selector).forEach(function (overlay) {
+            if (overlay.parentElement !== document.body) {
+                document.body.appendChild(overlay);
+            }
         });
     }
 
@@ -124,6 +131,7 @@
         }
 
         try { initConfirmForms(); } catch (err) { console.error('initConfirmForms', err); }
+        try { initProfessionalModals(); } catch (err) { console.error('initProfessionalModals', err); }
         try {
             initAutoSubmitFilters();
         } catch (error) {
@@ -417,20 +425,25 @@
     function toggleSubmenu(menu) {
         try {
             const submenu = document.getElementById(menu + '-submenu');
+            if (!submenu) return;
+
             const arrow = document.getElementById(menu + '-arrow');
-            
-            if (submenu && arrow) {
-                submenu.classList.toggle('hidden');
-                if (submenu.classList.contains('hidden')) {
-                    arrow.style.transform = 'rotate(0deg)';
-                } else {
-                    arrow.style.transform = 'rotate(180deg)';
-                }
+            submenu.classList.toggle('hidden');
+            if (arrow) {
+                arrow.style.transform = submenu.classList.contains('hidden') ? 'rotate(0deg)' : 'rotate(180deg)';
             }
         } catch (error) {
             console.error('Error toggling submenu:', error);
         }
     }
+    window.toggleSubmenu = toggleSubmenu;
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target && e.target.closest ? e.target.closest('[data-toggle-submenu]') : null;
+        if (!btn) return;
+        e.preventDefault();
+        toggleSubmenu(btn.getAttribute('data-toggle-submenu'));
+    });
 
     // Profile modal functions
     function showProfileModal() {

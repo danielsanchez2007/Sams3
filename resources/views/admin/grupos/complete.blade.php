@@ -171,44 +171,60 @@
 </div>
 
 <!-- Create Grupo Modal -->
-<div id="createGrupoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Crear Nuevo Grupo</h3>
-        <form action="{{ route('grupos.store') }}" method="POST">
-            @csrf
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Grupo *</label>
-                    <input type="text" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+<div id="createGrupoModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="createGrupoTitle">
+    <div class="pw-modal-content pw-modal-md">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="users" class="w-4 h-4"></i>
                 </div>
                 <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Líder del Grupo</label>
-                    <select id="createLeader" name="leader_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar líder...</option>
-                        @foreach($users as $user)
-                        <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Miembros del Grupo</label>
-                    <select id="createMembers" name="member_ids[]" multiple class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        @foreach($users as $user)
-                        <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
-                        @endforeach
-                    </select>
+                    <h3 id="createGrupoTitle" class="pw-modal-title">Crear grupo</h3>
+                    <p class="pw-modal-subtitle">Define el grupo, el líder y sus miembros.</p>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideCreateGrupoModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <button type="button" class="pw-modal-close" onclick="hideCreateGrupoModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
+        <form action="{{ route('grupos.store') }}" method="POST">
+            @csrf
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del grupo <span class="pw-req">*</span></label>
+                        <input type="text" name="name" required class="w-full">
+                    </div>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea name="description" rows="3" class="w-full"></textarea>
+                    </div>
+                    <div>
+                        <label>Líder del grupo</label>
+                        <select id="createLeader" name="leader_id" class="w-full">
+                            <option value="">Seleccionar líder...</option>
+                            @foreach($users as $user)
+                            <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label>Miembros del grupo</label>
+                        <select id="createMembers" name="member_ids[]" multiple class="w-full min-h-[7rem]">
+                            @foreach($users as $user)
+                            <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
+                            @endforeach
+                        </select>
+                        <p class="pw-hint">Mantén Ctrl (o Cmd) para seleccionar varios miembros.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideCreateGrupoModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Crear Grupo
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Crear grupo
                 </button>
             </div>
         </form>
@@ -216,45 +232,61 @@
 </div>
 
 <!-- Edit Grupo Modal -->
-<div id="editGrupoModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <h3 class="text-lg font-semibold text-gray-900 mb-4">Editar Grupo</h3>
+<div id="editGrupoModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="editGrupoTitle">
+    <div class="pw-modal-content pw-modal-md">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 id="editGrupoTitle" class="pw-modal-title">Editar grupo</h3>
+                    <p class="pw-modal-subtitle">Actualiza el líder y los miembros del grupo.</p>
+                </div>
+            </div>
+            <button type="button" class="pw-modal-close" onclick="hideEditGrupoModal()" aria-label="Cerrar">
+                <i data-lucide="x" class="w-4 h-4"></i>
+            </button>
+        </div>
         <form id="editGrupoForm" method="POST">
             @csrf
             @method('PUT')
-            <div class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Grupo *</label>
-                    <input type="text" id="editNombre" name="name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Descripción</label>
-                    <textarea id="editDescripcion" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Líder del Grupo</label>
-                    <select id="editLeader" name="leader_id" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        <option value="">Seleccionar líder...</option>
-                        @foreach($users as $user)
-                        <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Miembros del Grupo</label>
-                    <select id="editMembers" name="member_ids[]" multiple class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
-                        @foreach($users as $user)
-                        <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
-                        @endforeach
-                    </select>
+            <div class="pw-modal-body">
+                <div class="space-y-4">
+                    <div>
+                        <label>Nombre del grupo <span class="pw-req">*</span></label>
+                        <input type="text" id="editNombre" name="name" required class="w-full">
+                    </div>
+                    <div>
+                        <label>Descripción</label>
+                        <textarea id="editDescripcion" name="description" rows="3" class="w-full"></textarea>
+                    </div>
+                    <div>
+                        <label>Líder del grupo</label>
+                        <select id="editLeader" name="leader_id" class="w-full">
+                            <option value="">Seleccionar líder...</option>
+                            @foreach($users as $user)
+                            <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div>
+                        <label>Miembros del grupo</label>
+                        <select id="editMembers" name="member_ids[]" multiple class="w-full min-h-[7rem]">
+                            @foreach($users as $user)
+                            <option value="{{ $user->id }}" data-grupo-id="{{ $user->grupo_id }}" {{ isset($leaderIds) && $leaderIds->contains($user->id) ? 'hidden' : '' }}>{{ $user->name }} {{ $user->last_name ?? '' }}</option>
+                            @endforeach
+                        </select>
+                        <p class="pw-hint">Mantén Ctrl (o Cmd) para seleccionar varios miembros.</p>
+                    </div>
                 </div>
             </div>
-            <div class="flex justify-end space-x-3 mt-6">
-                <button type="button" onclick="hideEditGrupoModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">
+            <div class="pw-modal-footer">
+                <button type="button" onclick="hideEditGrupoModal()" class="pw-btn-secondary px-4 py-2.5 rounded-lg text-sm">
                     Cancelar
                 </button>
-                <button type="submit" class="pw-btn-primary px-4 py-2 rounded-lg">
-                    Actualizar Grupo
+                <button type="submit" class="pw-btn-primary px-4 py-2.5 rounded-lg text-sm">
+                    Actualizar grupo
                 </button>
             </div>
         </form>
@@ -262,26 +294,34 @@
 </div>
 
 <!-- View Grupo Users Modal -->
-<div id="viewGrupoUsersModal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
-    <div class="pw-modal-content bg-white rounded-xl p-6 w-full overflow-y-auto">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900" id="viewGrupoUsersTitle">Usuarios del Grupo</h3>
-            <button type="button" onclick="hideViewGrupoUsersModal()" class="p-2 text-gray-500 hover:bg-gray-100 rounded-lg">
+<div id="viewGrupoUsersModal" class="fixed inset-0 hidden z-[11000] flex items-start md:items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="viewGrupoUsersTitle">
+    <div class="pw-modal-content pw-modal-md">
+        <div class="pw-modal-header">
+            <div class="pw-modal-header-main">
+                <div class="pw-modal-header-icon" aria-hidden="true">
+                    <i data-lucide="users" class="w-4 h-4"></i>
+                </div>
+                <div>
+                    <h3 class="pw-modal-title" id="viewGrupoUsersTitle">Usuarios del grupo</h3>
+                    <p class="pw-modal-subtitle" id="viewGrupoUsersDescription"></p>
+                </div>
+            </div>
+            <button type="button" class="pw-modal-close" onclick="hideViewGrupoUsersModal()" aria-label="Cerrar">
                 <i data-lucide="x" class="w-4 h-4"></i>
             </button>
         </div>
-        <p class="text-sm text-gray-600 mb-4" id="viewGrupoUsersDescription"></p>
-
-        <div class="mb-4" id="viewGrupoLeaderContainer"></div>
-
-        <div class="border border-gray-200 rounded-lg overflow-hidden">
-            <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
-                <h4 class="text-sm font-semibold text-gray-800">Miembros</h4>
+        <div class="pw-modal-body">
+            <div class="mb-4" id="viewGrupoLeaderContainer"></div>
+            <div class="border border-gray-200 rounded-lg overflow-hidden">
+                <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                    <h4 class="text-sm font-semibold text-gray-800">Miembros</h4>
+                </div>
+                <div class="max-h-96 overflow-y-auto" id="viewGrupoUsersList"></div>
             </div>
-            <div class="max-h-96 overflow-y-auto" id="viewGrupoUsersList"></div>
         </div>
     </div>
 </div>
+
 @endsection
 
 @section('scripts')

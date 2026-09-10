@@ -162,7 +162,6 @@ En `.env.example` quedó documentado:
 | Punto | Cambio |
 |---|---|
 | Datos en modelos | `Role::permissions` y `AppSetting::value` ocultos al serializar |
-| Asistente IA | ya no envía nombres, correos ni cédulas; solo ID y estado |
 | `modulos` / `code_settings` de empresa | fuera de asignación masiva |
 | `innerHTML` | textos de usuario se escapan o van con `textContent` |
 | `/inicio` | sigue pública (landing) |

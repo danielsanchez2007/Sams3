@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Empresa;
+use Illuminate\Support\Facades\Cache;
 
 class EmpresaContext
 {
@@ -25,14 +26,16 @@ class EmpresaContext
 
         self::$preventionWorldCacheLoaded = true;
 
-        return self::$preventionWorldCache = Empresa::query()
-            ->where(function ($q) {
-                $q->whereRaw('LOWER(nombre) LIKE ?', ['%prevention world%'])
-                    ->orWhereRaw('LOWER(nombre) LIKE ?', ['%preventon world%'])
-                    ->orWhereRaw('LOWER(nombre) LIKE ?', ['%preventios world%']);
-            })
-            ->orderBy('id')
-            ->first();
+        return self::$preventionWorldCache = Cache::remember('sams_empresa_prevention_world', 600, function () {
+            return Empresa::query()
+                ->where(function ($q) {
+                    $q->whereRaw('LOWER(nombre) LIKE ?', ['%prevention world%'])
+                        ->orWhereRaw('LOWER(nombre) LIKE ?', ['%preventon world%'])
+                        ->orWhereRaw('LOWER(nombre) LIKE ?', ['%preventios world%']);
+                })
+                ->orderBy('id')
+                ->first();
+        });
     }
 
     public static function esPreventionWorld(?Empresa $empresa): bool
