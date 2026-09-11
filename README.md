@@ -12,7 +12,7 @@ php artisan sams:package
 php artisan sams:export-sql
 ```
 
-En el hosting: sube `dist/sams-subir.zip`, importa el SQL (o deja la base vacía) y abre `/instalar`.
+En el hosting: sube `dist/sams-subir.zip` **sin tocar el `.env` del servidor**, importa el SQL si la base es nueva y abre `/inicio`.
 
 Guía completa: [docs/COMO-SUBIR.md](docs/COMO-SUBIR.md)
 

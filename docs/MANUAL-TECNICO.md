@@ -206,7 +206,6 @@ php artisan test
 Comandos propios detectados:
 
 - `php artisan sams:package`: genera `dist/sams-subir.zip` listo para el hosting.
-- `php artisan sams:install`: conecta MySQL por consola (alternativa a `/instalar`).
 - `php artisan sams:export-sql`: exporta la base a un `.sql` para phpMyAdmin.
 - `php artisan hoja-vida:pdf {clase} {equipo} {--force=0}`: genera o regenera el PDF de una hoja de vida.
 - `php artisan passwords:update-bcrypt`: mantenimiento de contraseñas.
@@ -250,9 +249,9 @@ php artisan sams:export-sql
 
 En el servidor:
 
-1. Subir `dist/sams-subir.zip` y descomprimirlo.
-2. Importar el SQL en phpMyAdmin **o** dejar la base vacía.
-3. Abrir `/instalar` y cargar URL + MySQL.
+1. Subir `dist/sams-subir.zip` y descomprimirlo **sin reemplazar el `.env` del servidor**.
+2. Importar el SQL en phpMyAdmin **solo si la base es nueva**.
+3. Abrir `/inicio` y recargar con Ctrl+F5.
 4. Comprobar `/inicio` (estilos Tailwind, no el CSS viejo de Bootstrap).
 5. Permisos de escritura en `storage/` y `bootstrap/cache/`.
 

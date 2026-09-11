@@ -30,7 +30,6 @@ use App\Http\Controllers\SugerenciaController;
 use App\Http\Controllers\PrestamoTemporalController;
 use App\Http\Controllers\ManualTecnicoController;
 use App\Http\Controllers\PublicStorageController;
-use App\Http\Controllers\InstallController;
 
 /*
 |--------------------------------------------------------------------------
@@ -43,8 +42,7 @@ use App\Http\Controllers\InstallController;
 |
 */
 
-Route::get('/instalar', [InstallController::class, 'show'])->name('install.show');
-Route::post('/instalar', [InstallController::class, 'store'])->name('install.store');
+Route::redirect('/instalar', '/inicio');
 
 // Dashboard principal: requiere autenticación.
 Route::middleware(['auth'])->get('/', [DashboardController::class, 'index'])->name('dashboard');

@@ -4,7 +4,6 @@ namespace App\Providers;
 
 use App\Console\Commands\GenerateHojaVidaPdfCommand;
 use App\Console\Commands\SamsExportSqlCommand;
-use App\Console\Commands\SamsInstallCommand;
 use App\Console\Commands\SamsPackageCommand;
 use App\Models\Equipo;
 use App\Models\User;
@@ -57,7 +56,6 @@ class AppServiceProvider extends ServiceProvider
 
         $this->commands([
             GenerateHojaVidaPdfCommand::class,
-            SamsInstallCommand::class,
             SamsPackageCommand::class,
             SamsExportSqlCommand::class,
         ]);

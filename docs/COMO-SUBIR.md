@@ -1,6 +1,6 @@
 # Cómo subir SAMS (sistema + base de datos)
 
-El servidor **no necesita Node.js**. Los estilos se compilán en el PC y viajan con el código.
+El servidor **no necesita Node.js**. Los estilos ya van compilados en el código. No hay pantalla de instalación: se sube el sistema, se deja el `.env` del servidor y se abre `/inicio`.
 
 ## Cómo queda conectado
 
@@ -12,15 +12,14 @@ Navegador
    ├─ /build/assets/*.css|js   →  estilos Tailwind (Vite)
    ├─ /css/sams.css /js/sams.js →  copia estable por si falta el hash
    │
-   └─ MySQL  ←  .env (DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD)
-                 Sesiones y caché van en storage/ (archivos), no en la cola
+   └─ MySQL  ←  .env del SERVIDOR (DB_HOST, DB_DATABASE, DB_USERNAME, DB_PASSWORD)
+                 Sesiones y caché van en storage/ (archivos)
 ```
 
-1. **Archivos PHP** (`app/`, `resources/views/`, `routes/`) pintan pantallas y guardan datos.
-2. **`public/build`** y **`public/css/sams.css`** son el diseño. Sin esa carpeta el logo se ve enorme.
-3. **MySQL** guarda usuarios, equipos, empresas. El `.env` es el cable entre PHP y la base.
-4. **`storage/app/public`** guarda fotos y firmas. Si el hosting no deja crear el enlace `public/storage`, SAMS sirve esos archivos por la ruta `/storage/...`.
-5. **`/instalar`** escribe el `.env`, prueba MySQL y deja el sitio listo.
+1. **Archivos PHP** pintan pantallas y guardan datos.
+2. **`public/build`** y **`public/css/sams.css`** son el diseño.
+3. **MySQL** guarda usuarios, equipos, empresas. El `.env` del hosting es el cable.
+4. **`storage/app/public`** guarda fotos y firmas.
 
 ## En tu PC (una sola vez por versión)
 
@@ -28,28 +27,20 @@ Navegador
 composer install --no-dev --optimize-autoloader
 npm install
 php artisan sams:package
-```
-
-Eso genera `dist/sams-subir.zip` con `vendor` y los estilos.
-
-Para sacar la base actual:
-
-```bash
 php artisan sams:export-sql
 ```
 
-El `.sql` queda en `storage/app/private/exports/`.
+- `dist/sams-subir.zip` → sistema
+- `storage/app/private/exports/*.sql` → base de datos (si hay que copiarla)
 
 ## En el hosting
 
-1. Sube y descomprime el ZIP en la carpeta del dominio.
-2. En phpMyAdmin: crea la base **o** importa el `.sql`.
-3. Entra a `https://tu-dominio/instalar`.
-4. Pon la URL del sitio y los datos MySQL.
-5. Elige:
-   - **Ya importé el SQL** si subiste usuarios y equipos.
-   - **Crear tablas nuevas** si la base está vacía (pide un administrador).
-6. Abre `/inicio`. Debe verse el carrusel y el logo pequeño.
+1. Sube el ZIP y descomprímelo. **No borres ni reemplaces el `.env` que ya está en el servidor.**
+2. Si la base es nueva, importa el `.sql` en phpMyAdmin.
+3. Abre `https://tu-dominio/inicio`
+4. Recarga con `Ctrl + F5`
+
+Debe verse el logo pequeño, el carrusel y las tarjetas. El login usa los mismos usuarios de la base.
 
 ### Permisos
 
@@ -57,8 +48,6 @@ El `.sql` queda en `storage/app/private/exports/`.
 
 ### No subas
 
-- `.env` de tu PC (el instalador crea uno en el servidor)
-- `public/hot` (rompe estilos: apunta a Vite de localhost)
+- `.env` de tu PC (rompe la conexión a MySQL del hosting)
+- `public/hot` (rompe los estilos)
 - `node_modules`
-
-Si el dominio apunta a la raíz del proyecto (no a `public/`), el `.htaccess` de la raíz reenvía el tráfico a `public/`.

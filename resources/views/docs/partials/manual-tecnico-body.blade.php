@@ -643,13 +643,13 @@ storage/app/public/     # Archivos subidos</pre>
 </ul>
 
 <h2 id="sec-29">29. Despliegue en producción</h2>
-<p>Guía corta: <code>docs/COMO-SUBIR.md</code>. En el PC se genera un ZIP con <code>php artisan sams:package</code> (incluye <code>vendor</code> y estilos). En el servidor se sube el ZIP, se importa el SQL o se deja la base vacía, y se abre <code>/instalar</code>. No hace falta Node en el hosting.</p>
+<p>Guía corta: <code>docs/COMO-SUBIR.md</code>. En el PC se genera un ZIP con <code>php artisan sams:package</code> (incluye <code>vendor</code> y estilos). En el servidor se sube el ZIP <strong>sin tocar el .env</strong>, se importa el SQL si la base es nueva, y se abre <code>/inicio</code>. No hace falta Node en el hosting.</p>
 <ol>
     <li>En el PC: <code>composer install --no-dev --optimize-autoloader</code> y <code>npm run build</code></li>
     <li><code>php artisan sams:package</code> y, si aplica, <code>php artisan sams:export-sql</code></li>
     <li>Subir <code>dist/sams-subir.zip</code> y descomprimir</li>
     <li>Importar SQL en phpMyAdmin o usar el modo “crear tablas” del instalador</li>
-    <li>Abrir <code>/instalar</code> y cargar URL + MySQL</li>
+    <li>Abrir <code>/inicio</code> y recargar con Ctrl+F5</li>
     <li>Permisos de escritura en <code>storage/</code> y <code>bootstrap/cache/</code></li>
     <li>HTTPS; HSTS se activa automáticamente</li>
 </ol>

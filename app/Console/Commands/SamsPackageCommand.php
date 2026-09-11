@@ -115,16 +115,11 @@ SAMS — cómo subir el sistema
 ============================
 
 1. Sube TODO este ZIP al hosting (descomprímelo en public_html o en la carpeta del dominio).
-2. Crea una base MySQL vacía O importa tu SQL (phpMyAdmin).
-3. Entra a https://TU-DOMINIO/instalar
-4. Escribe la URL del sitio y los datos de MySQL.
-5. Elige:
-   - “Ya importé el SQL” si subiste la base con usuarios y equipos
-   - “Crear tablas nuevas” si la base está vacía
-6. Abre /inicio — los estilos ya van en public/build y public/css/sams.css
+2. NO reemplaces el archivo .env del servidor (ahí está la conexión a MySQL).
+3. Si la base es nueva, importa el SQL en phpMyAdmin.
+4. Abre /inicio — los estilos ya van en public/build y public/css/sams.css
 
 Permisos: storage/ y bootstrap/cache/ deben ser escribibles.
-No subas el archivo .env de tu PC. El instalador crea uno en el servidor.
 No subas public/hot (rompe los estilos).
 
 Si el dominio apunta a la raíz del proyecto (no a public/), el .htaccess de la raíz redirige a public/.
