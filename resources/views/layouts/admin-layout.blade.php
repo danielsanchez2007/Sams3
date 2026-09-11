@@ -287,7 +287,7 @@
             --pw-bubble-glow: {{ $pwBrandedTheme ? $rgbToRgba($hexToRgb($empresaColor) ?: [59,130,246], 0.35) : 'rgba(59, 130, 246, 0.46)' }};
             --sams-menu-icon-box-bg: {{ $iconBgSoft }};
             --sams-menu-icon-box-border: {{ $iconBorderSoft }};
-            @foreach(['message-square','home','menu','users','shield','briefcase','layers','factory','monitor','server','book-open','archive','clipboard-check','building','settings','file-text','download','user-check','repeat','package-check','file-check-2','user','log-out','building-2','undo-2'] as $ik)
+            @foreach(['message-square','home','menu','users','shield','briefcase','layers','factory','monitor','server','book-open','archive','clipboard-check','building','settings','file-text','download','user-check','repeat','package-check','file-check-2','user','log-out'] as $ik)
             --sams-icon-{{ $ik }}: {{ $menuIconColors[$ik] ?? $iconAccentHex }};
             --sams-icon-bg-{{ $ik }}: {{ $menuIconBgColors[$ik] ?? $iconBgSoft }};
             @endforeach

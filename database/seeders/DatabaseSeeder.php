@@ -26,9 +26,6 @@ class DatabaseSeeder extends Seeder
 
             TipoEquipoSeeder::class,
             ClaseEquipoSeeder::class,
-
-            // Equipos demo más completos y realistas (idempotente).
-            OfficeDemoEquiposSeeder::class,
         ]);
     }
 }

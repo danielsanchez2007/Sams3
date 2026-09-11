@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use App\Models\AvisoEmpresa;
 use App\Models\Empresa;
 use App\Services\EmpresaContext;
-use App\Services\VistaOficina;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
@@ -14,10 +13,6 @@ class SugerenciaController extends Controller
 {
     public function index()
     {
-        if (VistaOficina::mostrarMenuOficina(auth()->user())) {
-            return redirect()->route('admin.dashboard');
-        }
-
         $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
         $isAdmin = auth()->user() && !auth()->user()->empresa_id;
 

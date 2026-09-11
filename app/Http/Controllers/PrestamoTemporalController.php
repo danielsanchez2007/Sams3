@@ -8,7 +8,6 @@ use App\Models\PrestamoTemporal;
 use App\Models\PrestamoTemporalItem;
 use App\Models\User;
 use App\Services\EmpresaContext;
-use App\Services\VistaOficina;
 use App\Support\HtmlSanitizer;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
@@ -397,7 +396,7 @@ class PrestamoTemporalController extends Controller
     private function canGestionarPrestamos(): bool
     {
         $role = strtolower(trim(auth()->user()?->role?->name ?? ''));
-        return in_array($role, ['administrador', 'adminoficina'], true);
+        return in_array($role, ['administrador'], true);
     }
 
     private function buildTemplateHtml(User $toUser, ?User $prestador, $equipos, Carbon $fechaInicio, Carbon $fechaFin): string

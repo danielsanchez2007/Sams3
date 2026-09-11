@@ -8,7 +8,6 @@ use App\Models\User;
 use App\Services\EmpresaContext;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\Rule;
 
 class RoleController extends Controller
@@ -279,8 +278,6 @@ class RoleController extends Controller
         $role->forceFill(['permissions' => $perms]);
         $role->save();
 
-        Cache::forget('sams_role_perms_adminoficina');
-
         return redirect()->route('roles.complete')->with('success', '✅ Rol creado exitosamente');
     }
 
@@ -316,8 +313,6 @@ class RoleController extends Controller
         $role->forceFill(['permissions' => $perms]);
         $role->save();
 
-        Cache::forget('sams_role_perms_adminoficina');
-
         return redirect()->route('roles.complete')->with('success', '✅ Rol actualizado exitosamente');
     }
 
@@ -326,8 +321,6 @@ class RoleController extends Controller
         $this->assertCanEditModule('roles');
         $this->assertRoleInScope($role);
         $role->update(['activo' => ! $role->activo]);
-        Cache::forget('sams_role_perms_adminoficina');
-
         $status = $role->activo ? 'activado' : 'desactivado';
 
         return response()->json([
@@ -348,7 +341,6 @@ class RoleController extends Controller
                 ], 422);
             }
             $role->delete();
-            Cache::forget('sams_role_perms_adminoficina');
         } catch (\Throwable $e) {
             report($e);
             return response()->json([

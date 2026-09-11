@@ -2,23 +2,8 @@
 @php
     $user = Auth::user();
     $rolePermissions = $user->role?->permissions ?? null;
-    $officeModeByGlobalAdmin = \App\Services\VistaOficina::modoOficinaSesionActivo()
-        && $user
-        && !$user->empresa_id
-        && strtolower(trim($user->role?->name ?? '')) === 'administrador';
-    if ($officeModeByGlobalAdmin) {
-        $adminOficinaPerms = \Illuminate\Support\Facades\Cache::remember('sams_role_perms_adminoficina', 3600, function () {
-            return \App\Models\Role::query()
-                ->whereRaw('LOWER(name) = ?', ['adminoficina'])
-                ->value('permissions');
-        });
-        $rolePermissions = is_array($adminOficinaPerms) && !empty($adminOficinaPerms)
-            ? $adminOficinaPerms
-            : ['asignar'];
-    }
     $effectivePermissions = ($user && $user->empresa_id) ? null : $rolePermissions;
-    $canToggleOffice = $user && !$user->empresa_id && (strtolower(trim($user->role?->name ?? '')) === 'administrador');
-    $isPreventionWorldAdmin = $canToggleOffice && !$officeModeByGlobalAdmin;
+    $isPreventionWorldAdmin = $user && !$user->empresa_id && (strtolower(trim($user->role?->name ?? '')) === 'administrador');
     $hasPerm = function (?array $perms, string $key): bool {
         if (empty($perms) || !is_array($perms)) {
             return true; // Sin permisos definidos => acceso completo
@@ -26,7 +11,6 @@
         return in_array($key, $perms, true);
     };
     $empresaActiva = \App\Services\EmpresaContext::empresaActiva();
-    $empresaActivaEsPreventionWorld = \App\Services\EmpresaContext::esPreventionWorld($empresaActiva);
     $empresaModulosRaw = $empresaActiva?->modulos ?? null; // puede ser lista simple o mapa modulo=>nivel
     $empresaModuloNivel = function (string $key) use ($empresaModulosRaw, $user, $isPreventionWorldAdmin): string {
         if ($isPreventionWorldAdmin) {
@@ -53,8 +37,6 @@
         }
         return $val ? 'edit' : 'none';
     };
-    $vistaOficina = \App\Services\VistaOficina::mostrarMenuOficina($user);
-    $modoOficinaSesion = \App\Services\VistaOficina::modoOficinaSesionActivo();
     $empresaHasModulo = function (string $key) use ($empresaModuloNivel, $isPreventionWorldAdmin): bool {
         if ($isPreventionWorldAdmin) return true;
         return $empresaModuloNivel($key) !== 'none';
@@ -103,8 +85,6 @@
     <!-- Navigation Menu con Scroll -->
     <nav class="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
         @if(!$isGlobalOutsideEmpresa)
-        <!-- Sugerencias (oculto vista oficina) -->
-        @if(!$vistaOficina)
         <div class="relative group">
             <div class="absolute -left-2 top-0 bottom-0 w-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity {{ $sugerenciasEstado === 'observacion' ? 'bg-red-500' : 'bg-green-500' }}" style="{{ $sugerenciasEstado ? 'opacity: 0.6' : '' }}"></div>
             <a href="{{ route('sugerencias.index') }}" class="sidebar-item flex items-center space-x-4 px-4 py-4 {{ request()->routeIs('sugerencias.*') ? 'sidebar-item--active' : '' }} hover:bg-teal-50 hover:text-teal-700 rounded-xl transition-all duration-200 group">
@@ -218,19 +198,19 @@
                     <div class="menu-icon-box menu-icon-box-sub w-7 h-7 rounded-md flex items-center justify-center shrink-0 mr-3" data-icon="layers"><i data-lucide="layers" class="w-3.5 h-3.5" data-icon="layers"></i></div>
                     <span class="font-medium">Tipos de Equipos</span>
                 </a>
-                @if(!$vistaOficina && $empresaHasModulo('material_didactico'))
+                @if($empresaHasModulo('material_didactico'))
                 <a href="{{ route('equipos.material-didactico.index') }}" class="sidebar-item flex items-center px-4 py-3 {{ request()->routeIs('equipos.material-didactico.*') ? 'sidebar-item--active' : '' }} rounded-lg transition-all duration-200">
                     <div class="menu-icon-box menu-icon-box-sub w-7 h-7 rounded-md flex items-center justify-center shrink-0 mr-3" data-icon="book-open"><i data-lucide="book-open" class="w-3.5 h-3.5" data-icon="book-open"></i></div>
                     <span class="font-medium">Material Didáctico</span>
                 </a>
                 @endif
-                @if(!$vistaOficina && $empresaHasModulo('equipos_baja'))
+                @if($empresaHasModulo('equipos_baja'))
                 <a href="{{ route('equipos.bajas.index') }}" class="sidebar-item flex items-center px-4 py-3 {{ request()->routeIs('equipos.bajas.*') ? 'sidebar-item--active' : '' }} rounded-lg transition-all duration-200">
                     <div class="menu-icon-box menu-icon-box-sub w-7 h-7 rounded-md flex items-center justify-center shrink-0 mr-3" data-icon="archive"><i data-lucide="archive" class="w-3.5 h-3.5" data-icon="archive"></i></div>
                     <span class="font-medium">Equipos de Baja</span>
                 </a>
                 @endif
-                @if(!$vistaOficina && $empresaHasModulo('auditoria'))
+                @if($empresaHasModulo('auditoria'))
                 <a href="{{ route('equipos.auditoria.index') }}" class="sidebar-item flex items-center px-4 py-3 {{ request()->routeIs('equipos.auditoria.*') ? 'sidebar-item--active' : '' }} rounded-lg transition-all duration-200">
                     <div class="menu-icon-box menu-icon-box-sub w-7 h-7 rounded-md flex items-center justify-center shrink-0 mr-3" data-icon="clipboard-check"><i data-lucide="clipboard-check" class="w-3.5 h-3.5" data-icon="clipboard-check"></i></div>
                     <span class="font-medium">Auditoría de Equipos</span>
@@ -238,8 +218,6 @@
                 @endif
             </div>
         </div>
-        @endif
-
         @endif
 
         <!-- Gestión de Empresa -->
@@ -340,36 +318,6 @@
                 </div>
             </a>
         </div>
-        @if($vistaOficina)
-        <div class="relative group">
-            <div class="absolute -left-2 top-0 bottom-0 w-1 bg-emerald-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <a href="{{ route('asignar.mis-cosas') }}" class="sidebar-item w-full flex items-center px-4 py-4 {{ request()->routeIs('asignar.mis-cosas') ? 'sidebar-item--active' : '' }} rounded-xl transition-all duration-200 group">
-                <div class="flex items-center space-x-4">
-                    <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors" data-icon="package-check">
-                        <i data-lucide="package-check" class="w-5 h-5" data-icon="package-check"></i>
-                    </div>
-                    <div class="text-left">
-                        <span class="font-semibold text-lg">Mis cosas</span>
-                        <p class="text-xs ">Mis equipos y actas</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        <div class="relative group">
-            <div class="absolute -left-2 top-0 bottom-0 w-1 bg-cyan-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-            <a href="{{ route('asignar.seguimiento') }}" class="sidebar-item w-full flex items-center px-4 py-4 {{ request()->routeIs('asignar.seguimiento') ? 'sidebar-item--active' : '' }} rounded-xl transition-all duration-200 group">
-                <div class="flex items-center space-x-4">
-                    <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors" data-icon="file-check-2">
-                        <i data-lucide="file-check-2" class="w-5 h-5" data-icon="file-check-2"></i>
-                    </div>
-                    <div class="text-left">
-                        <span class="font-semibold text-lg">Seguimiento formatos</span>
-                        <p class="text-xs ">Control de asignaciones</p>
-                    </div>
-                </div>
-            </a>
-        </div>
-        @endif
         @endif
 
         @if(!$isGlobalOutsideEmpresa && $empresaHasModulo('prestamos_temporales'))
@@ -422,39 +370,6 @@
                 </button>
             </form>
 
-            @if($canToggleOffice && $empresaActivaEsPreventionWorld)
-                @if(!$modoOficinaSesion)
-                    <form action="{{ route('modo-oficina.entrar') }}" method="POST" class="relative group">
-                        @csrf
-                        <button type="submit" class="sidebar-item w-full flex items-center px-4 py-4 text-teal-700 hover:bg-teal-50 rounded-xl transition-all duration-200 group">
-                            <div class="flex items-center space-x-4">
-                                <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors bg-teal-100 text-teal-700" data-icon="building-2">
-                                    <i data-lucide="building-2" class="w-5 h-5"></i>
-                                </div>
-                                <div class="text-left">
-                                    <span class="font-semibold text-lg">Oficina</span>
-                                    <p class="text-xs text-teal-600">Apartado Prevention World</p>
-                                </div>
-                            </div>
-                        </button>
-                    </form>
-                @else
-                    <form action="{{ route('modo-oficina.salir') }}" method="POST" class="relative group">
-                        @csrf
-                        <button type="submit" class="sidebar-item w-full flex items-center px-4 py-4 text-sky-800 hover:bg-sky-50 rounded-xl transition-all duration-200 group">
-                            <div class="flex items-center space-x-4">
-                                <div class="menu-icon-box w-10 h-10 rounded-lg flex items-center justify-center transition-colors bg-sky-100 text-sky-800" data-icon="undo-2">
-                                    <i data-lucide="undo-2" class="w-5 h-5"></i>
-                                </div>
-                                <div class="text-left">
-                                    <span class="font-semibold text-lg">Prevention World</span>
-                                    <p class="text-xs text-sky-700">Volver a SAMS completo</p>
-                                </div>
-                            </div>
-                        </button>
-                    </form>
-                @endif
-            @endif
         </div>
     </nav>
 </aside>

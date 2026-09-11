@@ -27,7 +27,6 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AsignarController;
 use App\Http\Controllers\SugerenciaController;
-use App\Http\Controllers\ModoOficinaController;
 use App\Http\Controllers\PrestamoTemporalController;
 use App\Http\Controllers\ManualTecnicoController;
 use App\Http\Controllers\PublicStorageController;
@@ -128,9 +127,6 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
         Route::post('/hoja-vida-completa/{equipo}/guardar-hoja-vida', [ExportarController::class, 'guardarHojaVidaFromPreview'])->name('hoja-vida-completa.guardar-hoja-vida')->whereNumber('equipo');
         Route::get('/hoja-vida-completa/{equipo}', [ExportarController::class, 'downloadHojaVidaCompleta'])->name('hoja-vida-completa')->whereNumber('equipo');
     });
-
-    Route::post('/modo-oficina/entrar', [ModoOficinaController::class, 'entrar'])->name('modo-oficina.entrar');
-    Route::post('/modo-oficina/salir', [ModoOficinaController::class, 'salir'])->name('modo-oficina.salir');
 
     // Asignar equipos a usuarios
     Route::get('/asignar', [AsignarController::class, 'index'])->name('asignar.index');

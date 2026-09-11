@@ -9,7 +9,6 @@ use App\Models\EquipoAsignacionSolicitud;
 use App\Models\EquipoAsignacionSolicitudItem;
 use App\Models\User;
 use App\Services\EmpresaContext;
-use App\Services\VistaOficina;
 use App\Support\HtmlSanitizer;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
@@ -24,7 +23,6 @@ class AsignarController extends Controller
     public function index(Request $request): View
     {
         $this->assertCanViewModule('asignar');
-        $isAdminOficina = $this->isAdminOficina();
         $empresaId = $this->resolveEmpresaId();
         $empresas = Empresa::activas()->orderMatrizFirst()->orderBy('nombre')->get(['id', 'nombre']);
         $q = trim((string) $request->query('q', ''));
@@ -32,17 +30,8 @@ class AsignarController extends Controller
 
         $usersWithEquipos = User::query()
             ->when($empresaId, fn (Builder $query) => $query->where('empresa_id', $empresaId))
-            ->whereHas('equipoAsignaciones', function (Builder $query) use ($isAdminOficina) {
-                if ($isAdminOficina) {
-                    $query->whereHas('equipo', fn (Builder $equipoQuery) => $this->applyOfficeEquipoScope($equipoQuery));
-                }
-            })
+            ->whereHas('equipoAsignaciones')
             ->with([
-                'equipoAsignaciones' => function ($query) use ($isAdminOficina) {
-                    if ($isAdminOficina) {
-                        $query->whereHas('equipo', fn (Builder $equipoQuery) => $this->applyOfficeEquipoScope($equipoQuery));
-                    }
-                },
                 'equipoAsignaciones.equipo.imagenes',
                 'equipoAsignaciones.equipo.empresa',
             ])
@@ -111,7 +100,6 @@ class AsignarController extends Controller
     public function equipos(Request $request)
     {
         $this->assertCanViewModule('asignar');
-        $isAdminOficina = $this->isAdminOficina();
         $empresaId = $request->query('empresa_id', '');
         $q = trim((string) $request->query('q', ''));
 
@@ -119,7 +107,6 @@ class AsignarController extends Controller
             ->where('activo', true)
             ->sinTipoPapeleria()
             ->whereDoesntHave('asignacion')
-            ->when($isAdminOficina, fn (Builder $query) => $this->applyOfficeEquipoScope($query))
             ->when($empresaId !== '' && is_numeric($empresaId), fn ($query) => $query->where('empresa_id', (int) $empresaId))
             ->when($q !== '', function ($query) use ($q) {
                 $query->where(function ($qry) use ($q) {
@@ -208,7 +195,6 @@ class AsignarController extends Controller
         $equipos = Equipo::query()
             ->with(['asignacion.user:id,name,last_name', 'tipoEquipo:id,nombre,alias', 'claseEquipo:id,nombre,alias'])
             ->whereIn('id', $equipoIds)
-            ->when($this->isAdminOficina(), fn (Builder $q) => $this->applyOfficeEquipoScope($q))
             ->get();
 
         if ($equipos->isEmpty()) {
@@ -248,7 +234,6 @@ class AsignarController extends Controller
         $equipos = Equipo::query()
             ->with('asignacion.user:id,name,last_name')
             ->whereIn('id', $equipoIds)
-            ->when($this->isAdminOficina(), fn (Builder $q) => $this->applyOfficeEquipoScope($q))
             ->get();
 
         if ($equipos->isEmpty()) {
@@ -373,7 +358,6 @@ class AsignarController extends Controller
     public function seguimiento(): View
     {
         $this->assertCanViewModule('asignar');
-        abort_unless($this->isAdminOficina(), 403);
 
         $solicitudes = EquipoAsignacionSolicitud::query()
             ->with([
@@ -391,7 +375,6 @@ class AsignarController extends Controller
     public function verFormatoSeguimiento(int $solicitudId): View
     {
         $this->assertCanViewModule('asignar');
-        abort_unless($this->isAdminOficina(), 403);
 
         $solicitud = EquipoAsignacionSolicitud::query()
             ->with(['destinatario:id,name,last_name,email', 'items.equipo:id,nombre,codigo'])
@@ -407,7 +390,6 @@ class AsignarController extends Controller
     public function guardarFormatoSeguimiento(Request $request, int $solicitudId)
     {
         $this->assertCanEditModule('asignar');
-        abort_unless($this->isAdminOficina(), 403);
 
         $request->validate([
             'edited_html' => ['required', 'string', 'max:500000'],
@@ -433,7 +415,7 @@ class AsignarController extends Controller
 
     public function devolucionForm(int $solicitudId): View
     {
-        abort_unless($this->isAdminOficina(), 403);
+        $this->assertCanViewModule('asignar');
 
         $solicitud = EquipoAsignacionSolicitud::query()
             ->with(['destinatario:id,name,last_name,email', 'items.equipo:id,nombre,codigo,descripcion'])
@@ -460,7 +442,7 @@ class AsignarController extends Controller
 
     public function submitDevolucion(Request $request, int $solicitudId)
     {
-        abort_unless($this->isAdminOficina(), 403);
+        $this->assertCanEditModule('asignar');
 
         $request->validate([
             'equipo_ids' => ['required', 'array', 'min:1'],
@@ -513,7 +495,6 @@ class AsignarController extends Controller
     public function resolverRevisionDevolucion(Request $request, int $solicitudId)
     {
         $this->assertCanEditModule('asignar');
-        abort_unless($this->isAdminOficina(), 403);
 
         $request->validate([
             'accion' => ['required', 'in:aceptar,corregir'],
@@ -565,16 +546,6 @@ class AsignarController extends Controller
         }
         $a->delete();
         return response()->json(['success' => true, 'message' => 'Asignación eliminada.']);
-    }
-
-    private function isAdminOficina(): bool
-    {
-        return VistaOficina::mostrarMenuOficina(auth()->user());
-    }
-
-    private function applyOfficeEquipoScope(Builder $query): Builder
-    {
-        return $query->whereHas('tipoEquipo', fn (Builder $tipoQuery) => $tipoQuery->where('nombre', 'like', 'Oficina - %'));
     }
 
     private function buildAssignmentTemplateHtml(User $toUser, $equipos): string

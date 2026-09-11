@@ -176,7 +176,7 @@ Se generan hojas de vida, inspecciones, bajas y hojas de vida completas. Dompdf 
 
 ### 7.7 Utilidades
 
-Existen sugerencias, modo oficina y geocodificación de empresas.
+Existen sugerencias y geocodificación de empresas.
 
 ## 8. Base de datos y migraciones
 

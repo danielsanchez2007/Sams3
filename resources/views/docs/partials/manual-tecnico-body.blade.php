@@ -373,7 +373,6 @@ php artisan storage:link</pre>
 <h3>11.3 Roles</h3>
 <ul>
     <li><strong>administrador</strong> — rol global matriz (sin empresa_id en usuario).</li>
-    <li><strong>adminoficina</strong> — vista reducida (modo oficina).</li>
     <li><strong>{PREFIJO}-ADMIN</strong>, <strong>{PREFIJO}-USER</strong> — roles scoped por empresa.</li>
     <li>Permisos en JSON en tabla <code>roles.permissions</code> (claves: users, equipos, inspeccion, etc.).</li>
 </ul>
@@ -400,7 +399,6 @@ php artisan storage:link</pre>
         <tr><td>Sedes</td><td><code>sede</code></td><td>Ubicaciones físicas de la empresa</td></tr>
         <tr><td>Bodegas</td><td><code>bodega</code></td><td>Almacenes vinculados a sedes</td></tr>
         <tr><td>Sugerencias</td><td>—</td><td>Avisos de cumplimiento por empresa (<code>AvisoEmpresa</code>)</td></tr>
-        <tr><td>Modo oficina</td><td>—</td><td>Vista simplificada para demostración (<code>VistaOficina</code>)</td></tr>
     </tbody>
 </table>
 
@@ -604,7 +602,7 @@ storage/app/public/     # Archivos subidos</pre>
         <tr><td>Inventario y anexos</td><td><code>EquipoInventarioController</code>, <code>EquipoManagementController</code>, <code>EquiposBajaController</code>, <code>EquiposAuditoriaController</code>, <code>MaterialDidacticoController</code>, <code>TraspasoController</code></td></tr>
         <tr><td>Formatos / HV / inspección / export</td><td><code>FormatosController</code>, <code>HojaVidaController</code>, <code>InspeccionController</code>, <code>ExportarController</code></td></tr>
         <tr><td>Asignar / préstamos</td><td><code>AsignarController</code>, <code>PrestamoTemporalController</code></td></tr>
-        <tr><td>Modo oficina / sugerencias</td><td><code>ModoOficinaController</code>, <code>SugerenciaController</code></td></tr>
+        <tr><td>Sugerencias</td><td><code>SugerenciaController</code></td></tr>
         <tr><td>Documentación</td><td><code>ManualTecnicoController</code></td></tr>
         <tr><td>Auth / perfil</td><td><code>LoginController</code>, <code>RegisterController</code>, <code>ForcedPasswordController</code>, <code>ProfileController</code></td></tr>
     </tbody>

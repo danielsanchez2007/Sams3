@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\Bodega;
 use App\Services\EmpresaContext;
-use App\Services\VistaOficina;
 use App\Models\ClaseEquipo;
 use App\Models\Empresa;
 use App\Models\Equipo;
@@ -102,10 +101,6 @@ class EquipoInventarioController extends Controller
 
         $equipos = Equipo::query()
             ->sinTipoPapeleria()
-            ->when($this->esModoOficina(), fn ($q) => $q->whereHas(
-                'tipoEquipo',
-                fn ($t) => $t->where('nombre', 'like', 'Oficina - %')
-            ))
             ->with([
                 'tipoEquipo:id,nombre,alias',
                 'claseEquipo:id,nombre,alias,tipo_equipo_id',
@@ -271,10 +266,6 @@ class EquipoInventarioController extends Controller
     {
         $empresaActivaId = $this->empresaActivaId();
 
-        if ($errorOficina = $this->validarTipoClaseOficina($request->integer('tipo_equipo_id'), $request->integer('clase_equipo_id'))) {
-            return $errorOficina;
-        }
-
         $codigoReutilizableId = $request->filled('codigo_reutilizable_id') ? (int) $request->input('codigo_reutilizable_id') : null;
         $prefijo = $this->resolveEmpresaPrefijo($empresaActivaId);
         if (!$codigoReutilizableId) {
@@ -385,9 +376,6 @@ class EquipoInventarioController extends Controller
         if ($equipo->empresa_id && (int) $equipo->empresa_id !== (int) $empresaId) {
             abort(404);
         }
-        if ($this->esModoOficina() && !$this->equipoEsDeOficina($equipo)) {
-            abort(404);
-        }
         $tipos = $this->queryTiposInventario($empresaId)
             ->when($equipo->tipo_equipo_id, fn ($q) => $q->orWhere('id', $equipo->tipo_equipo_id))
             ->get(['id', 'nombre']);
@@ -411,10 +399,6 @@ class EquipoInventarioController extends Controller
     public function show(Equipo $equipo)
     {
         $this->authorize('view', $equipo);
-
-        if ($this->esModoOficina() && !$this->equipoEsDeOficina($equipo)) {
-            abort(404);
-        }
 
         $equipo->load(['tipoEquipo', 'claseEquipo', 'empresa', 'sede', 'bodega', 'fabricante', 'imagenes', 'kitItems', 'archivos']);
 
@@ -577,10 +561,6 @@ class EquipoInventarioController extends Controller
             abort(404);
         }
 
-        if ($errorOficina = $this->validarTipoClaseOficina($request->integer('tipo_equipo_id'), $request->integer('clase_equipo_id'))) {
-            return $errorOficina;
-        }
-
         $prefijo = $this->resolveEmpresaPrefijo($empresaActivaId);
         $codigoInput = $this->normalizeCodigo((string) $request->input('codigo', ''));
 
@@ -694,13 +674,7 @@ class EquipoInventarioController extends Controller
             ? $this->empresaCodeTag($empresaId, 'inventory_tag', 'IN')
             : strtoupper($estado);
         $codigoClase = 'GEN';
-        // Modo oficina: segmento central = alias del tipo de equipo (TEC, MOB, …), no "OFC".
-        if ($this->esModoOficina() && $tipoEquipoId) {
-            $tipo = TipoEquipo::query()->find($tipoEquipoId);
-            if ($tipo) {
-                $codigoClase = $this->codigoTagDesdeNombre((string) ($tipo->alias ?: $tipo->nombre));
-            }
-        } elseif ($claseEquipoId) {
+        if ($claseEquipoId) {
             $clase = ClaseEquipo::query()->find($claseEquipoId);
             if ($clase) {
                 $codigoClase = $this->codigoTagDesdeNombre((string) ($clase->alias ?: $clase->nombre));
@@ -1025,26 +999,11 @@ class EquipoInventarioController extends Controller
         }
     }
 
-    private function esModoOficina(): bool
-    {
-        return VistaOficina::mostrarMenuOficina(auth()->user());
-    }
-
-    private function equipoEsDeOficina(Equipo $equipo): bool
-    {
-        $equipo->loadMissing('tipoEquipo:id,nombre');
-
-        return str_starts_with(mb_strtolower((string) ($equipo->tipoEquipo?->nombre ?? '')), 'oficina - ');
-    }
-
     private function queryTiposInventario(?int $empresaId)
     {
         return TipoEquipo::when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
-            ->when($this->esModoOficina(), fn ($q) => $q->where('nombre', 'like', 'Oficina - %'))
-            ->when(!$this->esModoOficina(), function ($q) {
-                $q->whereRaw('LOWER(nombre) NOT LIKE ?', ['%papeler%'])
-                    ->whereRaw('LOWER(COALESCE(alias, \'\')) NOT LIKE ?', ['%papeler%']);
-            })
+            ->whereRaw('LOWER(nombre) NOT LIKE ?', ['%papeler%'])
+            ->whereRaw('LOWER(COALESCE(alias, \'\')) NOT LIKE ?', ['%papeler%'])
             ->orderBy('nombre');
     }
 
@@ -1052,41 +1011,12 @@ class EquipoInventarioController extends Controller
     {
         return ClaseEquipo::with('tipoEquipo')
             ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
-            ->when($this->esModoOficina(), fn ($q) => $q->whereHas(
-                'tipoEquipo',
-                fn ($t) => $t->where('nombre', 'like', 'Oficina - %')
-            ))
-            ->when(!$this->esModoOficina(), function ($q) {
-                $q->whereHas('tipoEquipo', function ($t) {
-                    $t->whereRaw('LOWER(nombre) NOT LIKE ?', ['%papeler%'])
-                        ->whereRaw('LOWER(COALESCE(alias, \'\')) NOT LIKE ?', ['%papeler%']);
-                })
-                    ->whereRaw('LOWER(nombre) NOT LIKE ?', ['%papeler%'])
+            ->whereHas('tipoEquipo', function ($t) {
+                $t->whereRaw('LOWER(nombre) NOT LIKE ?', ['%papeler%'])
                     ->whereRaw('LOWER(COALESCE(alias, \'\')) NOT LIKE ?', ['%papeler%']);
             })
+            ->whereRaw('LOWER(nombre) NOT LIKE ?', ['%papeler%'])
+            ->whereRaw('LOWER(COALESCE(alias, \'\')) NOT LIKE ?', ['%papeler%'])
             ->orderBy('nombre');
-    }
-
-    private function validarTipoClaseOficina(int $tipoEquipoId, int $claseEquipoId): ?\Illuminate\Http\RedirectResponse
-    {
-        if (!$this->esModoOficina()) {
-            return null;
-        }
-
-        $tipo = TipoEquipo::query()->find($tipoEquipoId);
-        if (!$tipo || !str_starts_with(mb_strtolower((string) $tipo->nombre), 'oficina - ')) {
-            return redirect()->back()
-                ->with('error', 'En modo Oficina solo puedes usar tipos que comiencen por "Oficina - ...".')
-                ->withInput();
-        }
-
-        $clase = ClaseEquipo::query()->with('tipoEquipo:id,nombre')->find($claseEquipoId);
-        if (!$clase || !str_starts_with(mb_strtolower((string) ($clase->tipoEquipo?->nombre ?? '')), 'oficina - ')) {
-            return redirect()->back()
-                ->with('error', 'En modo Oficina solo puedes usar clases dentro de tipos "Oficina - ...".')
-                ->withInput();
-        }
-
-        return null;
     }
 }

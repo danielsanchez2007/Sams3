@@ -1,28 +1,13 @@
 @php
     $user = Auth::user();
     $rolePermissions = Auth::user()->role?->permissions ?? null;
-    $officeModeByGlobalAdmin = \App\Services\VistaOficina::modoOficinaSesionActivo()
-        && $user
-        && !$user->empresa_id
-        && strtolower(trim($user->role?->name ?? '')) === 'administrador';
-    if ($officeModeByGlobalAdmin) {
-        $adminOficinaPerms = \App\Models\Role::query()
-            ->whereRaw('LOWER(name) = ?', ['adminoficina'])
-            ->value('permissions');
-        $rolePermissions = is_array($adminOficinaPerms) && !empty($adminOficinaPerms)
-            ? $adminOficinaPerms
-            : ['asignar'];
-    }
     $effectivePermissions = ($user && $user->empresa_id) ? null : $rolePermissions;
-    $vistaOficina = \App\Services\VistaOficina::mostrarMenuOficina($user);
     $isPreventionWorldAdmin = $user && !$user->empresa_id && (strtolower(trim($user->role?->name ?? '')) === 'administrador');
-    $modoOficinaSesion = \App\Services\VistaOficina::modoOficinaSesionActivo();
     $hasPerm = function (?array $perms, string $key): bool {
         if (empty($perms) || !is_array($perms)) return true;
         return in_array($key, $perms, true);
     };
     $empresaActiva = \App\Services\EmpresaContext::empresaActiva();
-    $empresaActivaEsPreventionWorld = \App\Services\EmpresaContext::esPreventionWorld($empresaActiva);
     $empresaModulosRaw = $empresaActiva?->modulos ?? null;
     $empresaModuloNivel = function (string $key) use ($empresaModulosRaw, $isPreventionWorldAdmin, $user): string {
         if ($isPreventionWorldAdmin) return 'edit';
@@ -43,12 +28,10 @@
 @endphp
 <nav id="topMenu" class="pw-menu-top pw-menu-top--brand flex-shrink-0 border-b border-gray-200/50 overflow-visible">
     <div class="flex items-center gap-1 px-4 py-2 min-w-max">
-        @if(!$vistaOficina)
         <a href="{{ route('sugerencias.index') }}" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('sugerencias.*') ? 'top-menu-item--active' : '' }}" >
             <i data-lucide="message-square" class="w-4 h-4 relative" data-icon="message-square"></i>
             <span>Sugerencias</span>
         </a>
-        @endif
         <a href="{{ route('admin.dashboard') }}" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('admin.dashboard') ? 'top-menu-item--active' : '' }}" >
             <i data-lucide="home" class="w-4 h-4" data-icon="home"></i>
             <span>Dashboard</span>
@@ -79,7 +62,7 @@
             <div class="top-dropdown-panel absolute left-0 top-full mt-1 py-2 bg-white rounded-xl shadow-xl border border-gray-200 min-w-[180px] z-[100] hidden group-hover:block group-[.dropdown-open]:block">
                 <a href="{{ route('equipos.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="server" class="w-4 h-4" data-icon="server"></i> Todos los Equipos</a>
                 <a href="{{ route('tipos.gestion') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="layers" class="w-4 h-4" data-icon="layers"></i> Tipos</a>
-                @if(!$vistaOficina && ($empresaHasModulo('material_didactico') || $empresaHasModulo('equipos_baja') || $empresaHasModulo('auditoria') || $isPreventionWorldAdmin))
+                @if($empresaHasModulo('material_didactico') || $empresaHasModulo('equipos_baja') || $empresaHasModulo('auditoria') || $isPreventionWorldAdmin)
                 @if($empresaHasModulo('material_didactico') || $isPreventionWorldAdmin)<a href="{{ route('equipos.material-didactico.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="book-open" class="w-4 h-4" data-icon="book-open"></i> Material Didáctico</a>@endif
                 @if($empresaHasModulo('equipos_baja') || $isPreventionWorldAdmin)<a href="{{ route('equipos.bajas.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="archive" class="w-4 h-4" data-icon="archive"></i> Equipos de Baja</a>@endif
                 @if($empresaHasModulo('auditoria') || $isPreventionWorldAdmin)<a href="{{ route('equipos.auditoria.index') }}" class="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"><i data-lucide="clipboard-check" class="w-4 h-4" data-icon="clipboard-check"></i> Auditoría</a>@endif
@@ -122,16 +105,6 @@
             <i data-lucide="user-check" class="w-4 h-4" data-icon="user-check"></i>
             <span>Asignar</span>
         </a>
-        @if($vistaOficina)
-        <a href="{{ route('asignar.mis-cosas') }}" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('asignar.mis-cosas') ? 'top-menu-item--active' : '' }}" >
-            <i data-lucide="package-check" class="w-4 h-4" data-icon="package-check"></i>
-            <span>Mis cosas</span>
-        </a>
-        <a href="{{ route('asignar.seguimiento') }}" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('asignar.seguimiento') ? 'top-menu-item--active' : '' }}" >
-            <i data-lucide="file-check-2" class="w-4 h-4" data-icon="file-check-2"></i>
-            <span>Seguimiento</span>
-        </a>
-        @endif
         @endif
         @if($empresaHasModulo('prestamos_temporales'))
         <a href="{{ route('prestamos-temporales.index') }}" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium {{ request()->routeIs('prestamos-temporales.*') ? 'top-menu-item--active' : '' }}" >
@@ -150,24 +123,5 @@
                 <span>Cerrar Sesión</span>
             </button>
         </form>
-        @if($isPreventionWorldAdmin && $empresaActivaEsPreventionWorld)
-            @if(!$modoOficinaSesion)
-                <form action="{{ route('modo-oficina.entrar') }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-teal-200 hover:text-teal-100 hover:bg-teal-500/20">
-                        <i data-lucide="building-2" class="w-4 h-4"></i>
-                        <span>Oficina</span>
-                    </button>
-                </form>
-            @else
-                <form action="{{ route('modo-oficina.salir') }}" method="POST" class="inline">
-                    @csrf
-                    <button type="submit" class="top-menu-item inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-sky-200 hover:text-sky-100 hover:bg-sky-500/20">
-                        <i data-lucide="undo-2" class="w-4 h-4"></i>
-                        <span>Prevention World</span>
-                    </button>
-                </form>
-            @endif
-        @endif
     </div>
 </nav>

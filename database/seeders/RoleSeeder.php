@@ -38,11 +38,10 @@ class RoleSeeder extends Seeder
             ]
         );
 
-        // Rol "oficina" (vista reducida); usado por lógica VistaOficina.
         Role::query()->firstOrCreate(
             ['name' => 'adminoficina'],
             [
-                'description' => 'Administrador de oficina (vista reducida).',
+                'description' => 'Administrador de oficina.',
                 'activo' => true,
                 'permissions' => [
                     'dashboard',
