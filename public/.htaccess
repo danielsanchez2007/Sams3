@@ -5,6 +5,9 @@
 
     RewriteEngine On
 
+    # Evita que un archivo "hot" de Vite local rompa los estilos en el servidor
+    RewriteRule ^hot$ - [F,L]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -34,6 +34,7 @@ return Application::configure(basePath: dirname(__DIR__))
             return route('admin.dashboard');
         });
         $middleware->appendToGroup('web', [
+            \App\Http\Middleware\RedirectIfUninstalled::class,
             \App\Http\Middleware\PreventAuthPageCache::class,
             \App\Http\Middleware\SecurityHeaders::class,
         ]);

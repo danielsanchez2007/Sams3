@@ -20,12 +20,12 @@ SAMS es una aplicación web monolítica construida sobre Laravel. El backend usa
 
 | Componente | Versión o referencia |
 | --- | --- |
-| PHP | 8.3 o superior |
+| PHP | 8.2 o superior |
 | Laravel | 12.x |
 | Base de datos | SQLite para desarrollo; MySQL para pruebas y producción |
-| Frontend | Vite 7, Sass, Bootstrap 5, Tailwind CSS 4 |
+| Frontend | Vite 7 y Tailwind CSS 4 (se compilan en el PC; el servidor solo sirve `public/build`) |
 | Documentos | Dompdf, FPDF, FPDI y PhpSpreadsheet/Maatwebsite Excel |
-| Cola, sesiones y caché | Driver `database` por defecto |
+| Cola, sesiones y caché | En hosting: archivos (`file`) y cola `sync`. No hace falta Node ni worker. |
 | Integraciones opcionales | Google Maps |
 
 ### 2.2 Directorios principales
@@ -44,10 +44,10 @@ SAMS es una aplicación web monolítica construida sobre Laravel. El backend usa
 
 ## 3. Requisitos previos
 
-- PHP 8.2+, Composer, Node.js y npm.
-- Extensiones PHP `mbstring`, `openssl`, `pdo`, `fileinfo`, `xml`, `ctype`, `json` y `tokenizer`.
+- PHP 8.2+, Composer. Node.js y npm **solo en el PC de desarrollo** (para `npm run build`).
+- Extensiones PHP `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `fileinfo`, `xml`, `ctype`, `json` y `tokenizer`.
 - MySQL si se usa la configuración de pruebas o producción; SQLite está soportado para desarrollo.
-- Servidor web con el document root apuntando a `public/` en producción.
+- Servidor web con el document root apuntando a `public/` en producción (si apunta a la raíz del proyecto, el `.htaccess` raíz reenvía a `public/`).
 - Permisos de escritura para `storage/` y `bootstrap/cache/`.
 
 En Windows, Laragon es una opción válida para ejecutar el proyecto localmente.
@@ -205,6 +205,9 @@ php artisan test
 
 Comandos propios detectados:
 
+- `php artisan sams:package`: genera `dist/sams-subir.zip` listo para el hosting.
+- `php artisan sams:install`: conecta MySQL por consola (alternativa a `/instalar`).
+- `php artisan sams:export-sql`: exporta la base a un `.sql` para phpMyAdmin.
 - `php artisan hoja-vida:pdf {clase} {equipo} {--force=0}`: genera o regenera el PDF de una hoja de vida.
 - `php artisan passwords:update-bcrypt`: mantenimiento de contraseñas.
 - `php artisan sams:ensure-prevention-world`: normaliza datos de Prevention World.
@@ -234,19 +237,28 @@ La configuración de PHPUnit usa MySQL en `localhost:3320`, base `sams3`, usuari
 
 ## 11. Despliegue de producción
 
-1. Instalar PHP, extensiones, Composer, Node.js y el servidor web.
-2. Publicar el código sin `.env` ni secretos en control de versiones.
-3. Ejecutar `composer install --no-dev --optimize-autoloader`.
-4. Configurar `.env` con HTTPS, base de datos, correo y almacenamiento.
-5. Ejecutar `php artisan migrate --force`.
-6. Ejecutar `npm ci` y `npm run build`.
-7. Ejecutar `php artisan storage:link`.
-8. Aplicar cachés de configuración, rutas y vistas.
-9. Apuntar el document root a `public/`.
-10. Configurar un proceso persistente para `queue:work`.
-11. Configurar respaldos y monitoreo.
+Flujo corto (recomendado): ver [COMO-SUBIR.md](COMO-SUBIR.md).
 
-El usuario del servidor web debe escribir en `storage/` y `bootstrap/cache/`, pero no en el código de la aplicación.
+En el PC:
+
+```powershell
+composer install --no-dev --optimize-autoloader
+npm run build
+php artisan sams:package
+php artisan sams:export-sql
+```
+
+En el servidor:
+
+1. Subir `dist/sams-subir.zip` y descomprimirlo.
+2. Importar el SQL en phpMyAdmin **o** dejar la base vacía.
+3. Abrir `/instalar` y cargar URL + MySQL.
+4. Comprobar `/inicio` (estilos Tailwind, no el CSS viejo de Bootstrap).
+5. Permisos de escritura en `storage/` y `bootstrap/cache/`.
+
+El document root ideal es `public/`. Si el hosting usa la raíz del proyecto, el `.htaccess` raíz reenvía a `public/`.
+
+No hace falta Node, `npm run build` ni un worker de colas en el hosting: las sesiones y la caché van a archivos y la cola corre en `sync`.
 
 ## 12. Respaldo y recuperación
 

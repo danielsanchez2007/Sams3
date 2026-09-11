@@ -266,7 +266,7 @@
 @endsection
 
 @section('scripts')
-@vite('resources/js/charts.js')
+<x-sams-assets :entries="['resources/js/charts.js']" />
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const waitChart = function(cb) {

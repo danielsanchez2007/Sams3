@@ -24,6 +24,7 @@
                 <img src="{{ asset($logoPrimario) }}"
                      alt="Prevention World"
                      class="h-28 w-auto drop-shadow-md"
+                     style="height:7rem;width:auto;max-width:280px;object-fit:contain"
                      onerror="this.onerror=null;this.src='{{ asset($logoFallback) }}';">
             </div>
 

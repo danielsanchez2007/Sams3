@@ -20,7 +20,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Prevention World | Plataforma Institucional</title>
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <x-sams-assets />
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap');
@@ -28,6 +28,21 @@
         :root {
             --primary: #003087;
             --accent: #00d4ff;
+        }
+
+        .pw-logo-header {
+            height: 4rem;
+            width: auto;
+            max-width: 280px;
+            object-fit: contain;
+            display: block;
+        }
+        .pw-logo-footer {
+            height: 3rem;
+            width: auto;
+            max-width: 220px;
+            object-fit: contain;
+            display: block;
         }
 
         body {
@@ -145,7 +160,7 @@
                 <img
                     src="{{ asset($logoPrimario) }}"
                     alt="Prevention World"
-                    class="h-14 md:h-16 w-auto max-w-[280px] object-contain"
+                    class="pw-logo-header h-14 md:h-16 w-auto max-w-[280px] object-contain"
                     onerror="this.onerror=null;this.src='{{ asset($logoFallback) }}';"
                 >
             </a>
@@ -295,7 +310,7 @@
                             <img
                                 src="{{ asset($logoPrimario) }}"
                                 alt="Prevention World"
-                                class="h-12 w-auto max-w-[220px] object-contain"
+                                class="pw-logo-footer h-12 w-auto max-w-[220px] object-contain"
                                 onerror="this.onerror=null;this.src='{{ asset($logoFallback) }}';"
                             >
                         </div>

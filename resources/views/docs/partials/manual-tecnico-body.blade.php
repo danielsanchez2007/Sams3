@@ -220,7 +220,7 @@ Usuario de empresa (empresa_id = N)
         <tr><td>Extensiones PHP</td><td>pdo_mysql, openssl, mbstring, json, fileinfo, gd, xml, zip</td></tr>
         <tr><td>MySQL / MariaDB</td><td>5.7+ / 10.3+</td></tr>
         <tr><td>Composer</td><td>2.x</td></tr>
-        <tr><td>Node.js</td><td>18+ (build de assets Vite)</td></tr>
+        <tr><td>PHP</td><td>8.2+ (8.3 recomendado)</td></tr>
         <tr><td>Servidor web</td><td>Apache/Nginx apuntando a <code>public/</code></td></tr>
     </tbody>
 </table>
@@ -643,15 +643,15 @@ storage/app/public/     # Archivos subidos</pre>
 </ul>
 
 <h2 id="sec-29">29. Despliegue en producción</h2>
+<p>Guía corta: <code>docs/COMO-SUBIR.md</code>. En el PC se genera un ZIP con <code>php artisan sams:package</code> (incluye <code>vendor</code> y estilos). En el servidor se sube el ZIP, se importa el SQL o se deja la base vacía, y se abre <code>/instalar</code>. No hace falta Node en el hosting.</p>
 <ol>
-    <li><code>composer install --no-dev --optimize-autoloader</code></li>
-    <li><code>npm ci && npm run build</code></li>
-    <li>Configurar <code>.env</code> con <code>APP_DEBUG=false</code>, <code>APP_ENV=production</code></li>
-    <li><code>php artisan migrate --force</code></li>
-    <li><code>php artisan storage:link</code></li>
-    <li><code>php artisan config:cache route:cache view:cache</code></li>
-    <li>Permisos escritura en <code>storage/</code> y <code>bootstrap/cache/</code></li>
-    <li>HTTPS obligatorio; HSTS se activa automáticamente</li>
+    <li>En el PC: <code>composer install --no-dev --optimize-autoloader</code> y <code>npm run build</code></li>
+    <li><code>php artisan sams:package</code> y, si aplica, <code>php artisan sams:export-sql</code></li>
+    <li>Subir <code>dist/sams-subir.zip</code> y descomprimir</li>
+    <li>Importar SQL en phpMyAdmin o usar el modo “crear tablas” del instalador</li>
+    <li>Abrir <code>/instalar</code> y cargar URL + MySQL</li>
+    <li>Permisos de escritura en <code>storage/</code> y <code>bootstrap/cache/</code></li>
+    <li>HTTPS; HSTS se activa automáticamente</li>
 </ol>
 
 <h2 id="sec-30">30. Operaciones y mantenimiento</h2>
@@ -676,7 +676,7 @@ storage/app/public/     # Archivos subidos</pre>
         <tr><td>Imágenes no cargan</td><td>Falta storage:link</td><td><code>php artisan storage:link</code></td></tr>
         <tr><td>500 en subida Excel</td><td>MIME o límite PHP</td><td>Revisar upload_max_filesize; logs</td></tr>
         <tr><td>PDF en blanco</td><td>CSS complejo o memoria</td><td>Simplificar plantilla; subir memory_limit</td></tr>
-        <tr><td>Estilos desactualizados</td><td>Caché Vite/views</td><td><code>npm run build</code>; <code>view:clear</code></td></tr>
+        <tr><td>Estilos desactualizados o logo enorme</td><td>Falta <code>public/build</code> o quedó el archivo <code>public/hot</code></td><td>Subir el ZIP de <code>sams:package</code>; borrar <code>public/hot</code>; recargar con Ctrl+F5</td></tr>
         <tr><td>Cross-tenant data</td><td>EmpresaContext incorrecto</td><td>Verificar sesión empresa_activa_id</td></tr>
     </tbody>
 </table>

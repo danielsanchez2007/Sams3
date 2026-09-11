@@ -3,14 +3,17 @@
 namespace App\Providers;
 
 use App\Console\Commands\GenerateHojaVidaPdfCommand;
+use App\Console\Commands\SamsExportSqlCommand;
+use App\Console\Commands\SamsInstallCommand;
+use App\Console\Commands\SamsPackageCommand;
 use App\Models\Equipo;
 use App\Models\User;
 use App\Policies\EquipoPolicy;
 use App\Policies\UserPolicy;
+use App\Support\DeployEnvironment;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
@@ -54,32 +57,13 @@ class AppServiceProvider extends ServiceProvider
 
         $this->commands([
             GenerateHojaVidaPdfCommand::class,
+            SamsInstallCommand::class,
+            SamsPackageCommand::class,
+            SamsExportSqlCommand::class,
         ]);
 
-        if ($this->app->environment('production')) {
-            URL::forceScheme('https');
-        }
-
-        // Usar el origen real del request (incluye /public si aplica) para que
-        // el formulario de login no publique a otro host o sin el prefijo.
-        if (!$this->app->runningInConsole()) {
-            $this->app->booted(function () {
-                try {
-                    $request = request();
-                    if (! $request) {
-                        return;
-                    }
-                    $root = rtrim($request->getSchemeAndHttpHost().$request->getBasePath(), '/');
-                    if ($root !== '') {
-                        URL::forceRootUrl($root);
-                    }
-                    if ($request->isSecure()) {
-                        URL::forceScheme('https');
-                    }
-                } catch (\Throwable $e) {
-                    // ignore
-                }
-            });
-        }
+        $this->app->booted(function () {
+            DeployEnvironment::boot();
+        });
     }
 }

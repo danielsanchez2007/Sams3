@@ -30,6 +30,7 @@ use App\Http\Controllers\SugerenciaController;
 use App\Http\Controllers\PrestamoTemporalController;
 use App\Http\Controllers\ManualTecnicoController;
 use App\Http\Controllers\PublicStorageController;
+use App\Http\Controllers\InstallController;
 
 /*
 |--------------------------------------------------------------------------
@@ -41,6 +42,9 @@ use App\Http\Controllers\PublicStorageController;
 | contains the "web" middleware group. Now create something great!
 |
 */
+
+Route::get('/instalar', [InstallController::class, 'show'])->name('install.show');
+Route::post('/instalar', [InstallController::class, 'store'])->name('install.store');
 
 // Dashboard principal: requiere autenticación.
 Route::middleware(['auth'])->get('/', [DashboardController::class, 'index'])->name('dashboard');
