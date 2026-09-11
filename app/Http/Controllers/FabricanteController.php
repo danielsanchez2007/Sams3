@@ -65,15 +65,12 @@ class FabricanteController extends Controller
 
     public function index()
     {
-        $this->assertCanViewModule('fabricantes');
-        $fabricantes = Fabricante::all();
-        return view('admin.fabricantes.index', compact('fabricantes'));
+        return redirect()->route('fabricantes.complete');
     }
 
     public function create()
     {
-        $this->assertCanEditModule('fabricantes');
-        return view('admin.fabricantes.create');
+        return redirect()->route('fabricantes.complete');
     }
 
     public function store(Request $request)

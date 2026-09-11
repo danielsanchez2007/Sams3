@@ -217,22 +217,7 @@ class RoleController extends Controller
 
     public function index()
     {
-        $this->assertCanViewModule('roles');
-        $query = Role::withCount('users');
-        $empresa = $this->empresaActivaParaScope();
-        if ($empresa) {
-            $prefijo = $this->prefijoEmpresa($empresa);
-            $query->where(function ($q) use ($empresa, $prefijo) {
-                $q->where('name', 'like', $prefijo.'-%');
-                if ($empresa->default_role_id) {
-                    $q->orWhere('id', $empresa->default_role_id);
-                }
-            })->whereRaw('LOWER(name) != ?', ['administrador']);
-        }
-
-        $roles = $query->get();
-
-        return view('admin.roles.index', compact('roles'));
+        return redirect()->route('roles.complete');
     }
 
     public function create()

@@ -11,8 +11,8 @@ return [
     'codigos_sync_ttl' => (int) env('SAMS_CODIGOS_SYNC_TTL', 600),
 
     'default_logos' => [
-        'principal' => 'images/logo principal .png',
-        'secundario' => 'images/LOGO-INSTITUTO-PREVENTION-WORLD.png',
+        'principal' => 'images/logo-principal.png',
+        'secundario' => 'images/logo-instituto.png',
     ],
 
     'modulos' => [

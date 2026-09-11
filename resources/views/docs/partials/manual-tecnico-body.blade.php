@@ -564,7 +564,7 @@ php artisan storage:link</pre>
     @endforeach
     </tbody>
 </table>
-<p>Build: <code>vite.config.js</code> — entradas <code>resources/sass/app.scss</code>, <code>resources/js/app.js</code>.</p>
+<p>Build: <code>vite.config.js</code> — entradas <code>resources/css/app.css</code>, <code>resources/js/app.js</code>, <code>resources/js/charts.js</code>.</p>
 
 <h2 id="sec-24">24. CDN y recursos externos</h2>
 <ul>
@@ -663,7 +663,7 @@ storage/app/public/     # Archivos subidos</pre>
         <tr><td>Logs</td><td><code>storage/logs/laravel.log</code></td></tr>
         <tr><td>Limpiar caché</td><td><code>php artisan cache:clear config:clear view:clear</code></td></tr>
         <tr><td>Actualizar dependencias</td><td><code>composer update</code> en staging primero; revisar changelog Laravel</td></tr>
-        <tr><td>Seeders demo</td><td><code>UserDemoSeeder</code>, <code>OfficeDemoEquiposSeeder</code> — solo desarrollo</td></tr>
+        <tr><td>Seeders demo</td><td><code>UserDemoSeeder</code> — solo desarrollo</td></tr>
     </tbody>
 </table>
 

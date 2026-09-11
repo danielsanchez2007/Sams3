@@ -78,20 +78,20 @@
         <p class="section-title">Acciones Rápidas</p>
         <div class="section-divider"></div>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            <button onclick="location.href='{{ route('users.create') }}'" class="action-btn" aria-label="Crear nuevo usuario">
-                <i data-lucide="user-plus" class="w-4 h-4"></i> Nuevo Usuario
+            <button onclick="location.href='{{ route('users.complete') }}'" class="action-btn" aria-label="Ir a usuarios">
+                <i data-lucide="user-plus" class="w-4 h-4"></i> Usuarios
             </button>
-            <button onclick="location.href='{{ route('roles.create') }}'" class="action-btn" aria-label="Crear nuevo rol">
-                <i data-lucide="shield-plus" class="w-4 h-4"></i> Nuevo Rol
+            <button onclick="location.href='{{ route('roles.complete') }}'" class="action-btn" aria-label="Ir a roles">
+                <i data-lucide="shield-plus" class="w-4 h-4"></i> Roles
             </button>
-            <button onclick="location.href='{{ route('cargos.create') }}'" class="action-btn" aria-label="Crear nuevo cargo">
-                <i data-lucide="briefcase" class="w-4 h-4"></i> Nuevo Cargo
+            <button onclick="location.href='{{ route('cargos.complete') }}'" class="action-btn" aria-label="Ir a cargos">
+                <i data-lucide="briefcase" class="w-4 h-4"></i> Cargos
             </button>
-            <button onclick="location.href='{{ route('grupos.create') }}'" class="action-btn" aria-label="Crear nuevo grupo">
-                <i data-lucide="users" class="w-4 h-4"></i> Nuevo Grupo
+            <button onclick="location.href='{{ route('grupos.complete') }}'" class="action-btn" aria-label="Ir a grupos">
+                <i data-lucide="users" class="w-4 h-4"></i> Grupos
             </button>
-            <button onclick="location.href='{{ route('fabricantes.create') }}'" class="action-btn" aria-label="Crear nuevo fabricante">
-                <i data-lucide="factory" class="w-4 h-4"></i> Nuevo Fabricante
+            <button onclick="location.href='{{ route('fabricantes.complete') }}'" class="action-btn" aria-label="Ir a fabricantes">
+                <i data-lucide="factory" class="w-4 h-4"></i> Fabricantes
             </button>
             <button onclick="location.href='{{ route('equipos.gestion') }}'" class="action-btn" aria-label="Gestión de equipos">
                 <i data-lucide="server" class="w-4 h-4"></i> Gestión Equipos

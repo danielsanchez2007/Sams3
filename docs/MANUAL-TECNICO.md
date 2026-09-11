@@ -14,7 +14,7 @@ SAMS centraliza la administración multiempresa de equipos, ubicaciones, asignac
 
 ## 2. Resumen de la solución
 
-SAMS es una aplicación web monolítica construida sobre Laravel. El backend usa controladores, modelos Eloquent, policies, servicios y middleware. La interfaz usa vistas Blade, JavaScript, Vite, Bootstrap/Tailwind y Chart.js.
+SAMS es una aplicación web monolítica construida sobre Laravel. El backend usa controladores, modelos Eloquent, policies, servicios y middleware. La interfaz usa vistas Blade, JavaScript, Vite, Tailwind CSS y Chart.js.
 
 ### 2.1 Tecnologías
 

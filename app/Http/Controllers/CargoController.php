@@ -102,21 +102,12 @@ class CargoController extends Controller
 
     public function index()
     {
-        $this->assertCanViewModule('cargos');
-        $empresaId = $this->empresaActivaId();
-        if (!$empresaId) {
-            abort(403);
-        }
-        $cargos = Cargo::withCount('users')->where('empresa_id', $empresaId)->get();
-
-        return view('admin.cargos.index', compact('cargos'));
+        return redirect()->route('cargos.complete');
     }
 
     public function create()
     {
-        $this->assertCanEditModule('cargos');
-        $this->assertTenantEmpresaId();
-        return view('admin.cargos.create');
+        return redirect()->route('cargos.complete');
     }
 
     public function store(Request $request)

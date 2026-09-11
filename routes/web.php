@@ -325,16 +325,8 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
         Route::post('/bajas/eliminar', [EquiposBajaController::class, 'eliminar'])->name('bajas.eliminar');
 
         Route::get('/gestion', [EquipoManagementController::class, 'index'])->name('gestion');
-        Route::post('/store-tipo', [EquipoManagementController::class, 'storeTipo'])->name('store-tipo');
-        Route::post('/store-clase', [EquipoManagementController::class, 'storeClase'])->name('store-clase');
-        Route::get('/edit-tipo/{id}', [EquipoManagementController::class, 'editTipo'])->name('edit-tipo');
-        Route::get('/edit-clase/{id}', [EquipoManagementController::class, 'editClase'])->name('edit-clase');
         Route::put('/update-tipo/{id}', [EquipoManagementController::class, 'updateTipo'])->name('update-tipo');
         Route::put('/update-clase/{id}', [EquipoManagementController::class, 'updateClase'])->name('update-clase');
-        Route::delete('/delete-tipo/{id}', [EquipoManagementController::class, 'deleteTipo'])->name('delete-tipo');
-        Route::delete('/delete-clase/{id}', [EquipoManagementController::class, 'deleteClase'])->name('delete-clase');
-        Route::post('/toggle-tipo/{id}', [EquipoManagementController::class, 'toggleTipoStatus'])->name('toggle-tipo');
-        Route::post('/toggle-clase/{id}', [EquipoManagementController::class, 'toggleClaseStatus'])->name('toggle-clase');
     });
 });
 

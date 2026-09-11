@@ -81,24 +81,12 @@ class GrupoController extends Controller
 
     public function index()
     {
-        $this->assertCanViewModule('grupos');
-        $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
-        if (!$empresaId) {
-            abort(403);
-        }
-        $grupos = Grupo::withCount('users')->where('empresa_id', $empresaId)->get();
-        return view('admin.grupos.index', compact('grupos'));
+        return redirect()->route('grupos.complete');
     }
 
     public function create()
     {
-        $this->assertCanEditModule('grupos');
-        $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
-        if (!$empresaId) {
-            abort(403);
-        }
-        $users = User::where('active', true)->where('empresa_id', $empresaId)->get();
-        return view('admin.grupos.create', compact('users'));
+        return redirect()->route('grupos.complete');
     }
 
     public function store(Request $request)
@@ -290,17 +278,6 @@ class GrupoController extends Controller
             'success' => true,
             'message' => "✅ Grupo {$status} exitosamente."
         ]);
-    }
-
-    public function showUsers(Grupo $grupo)
-    {
-        $this->assertCanViewModule('grupos');
-        $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
-        if (!$empresaId || (int) $grupo->empresa_id !== (int) $empresaId) {
-            abort(404);
-        }
-        $users = $grupo->users()->with(['role', 'cargo'])->get();
-        return view('admin.grupos.users', compact('grupo', 'users'));
     }
 
     public function usersJson(Grupo $grupo)

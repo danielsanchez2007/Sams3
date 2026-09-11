@@ -17,7 +17,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
-use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class UserController extends Controller
@@ -385,14 +384,7 @@ class UserController extends Controller
 
     public function create()
     {
-        if (!$this->canEditUsersModule()) {
-            abort(403);
-        }
-        $empresaId = $this->resolveEmpresaContextId();
-        $roles = $this->rolesPermitidosQuery($empresaId)->orderBy('name')->get();
-        $cargos = $this->cargosPermitidosQuery($empresaId)->orderBy('name')->get();
-        $grupos = $this->gruposPermitidosQuery($empresaId)->orderBy('name')->get();
-        return view('admin.users.create', compact('roles', 'cargos', 'grupos'));
+        return redirect()->route('users.complete');
     }
 
     public function store(Request $request)
@@ -687,25 +679,6 @@ class UserController extends Controller
         ]);
     }
 
-    public function resetPassword(Request $request, User $user)
-    {
-        if (!$this->canEditUsersModule()) {
-            abort(403);
-        }
-        $this->assertUserInCurrentEmpresa($user);
-        $newPassword = Str::password(16);
-        $user->fillAccount([
-            'password' => $newPassword,
-            'must_change_password' => true,
-        ]);
-        $user->save();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Contraseña restablecida. El usuario deberá cambiarla al iniciar sesión.',
-        ]);
-    }
-
     public function show(User $user)
     {
         $this->assertUserInCurrentEmpresa($user);
@@ -803,32 +776,6 @@ class UserController extends Controller
         }
 
         return back()->with('success', 'Usuarios eliminados correctamente: ' . count($users));
-    }
-
-    public function showRoleModal(User $user)
-    {
-        $roles = Role::where('active', true)->get();
-        return view('admin.users.role-modal', compact('user', 'roles'));
-    }
-
-    public function updateRole(Request $request, User $user)
-    {
-        if (!$this->canEditUsersModule()) {
-            abort(403);
-        }
-        $this->assertUserInCurrentEmpresa($user);
-
-        $empresaIdContexto = $this->resolveEmpresaContextId($user);
-        $allowedRoleIds = $this->rolesPermitidosQuery($empresaIdContexto)->pluck('id')->all();
-
-        $request->validate([
-            'role_id' => ['required', 'exists:roles,id', Rule::in($allowedRoleIds)],
-        ]);
-
-        $user->role_id = (int) $request->role_id;
-        $user->save();
-
-        return redirect()->route('users.complete')->with('success', 'Rol actualizado correctamente.');
     }
 
     public function pendingMeta(User $user)
