@@ -107,10 +107,10 @@ class EquiposBajaController extends Controller
 
         if (!$this->soportaLecturaExcel()) {
             return redirect()->route('equipos.bajas.index')
-                ->with('error', 'âš ï¸ El formato se guardÃ³, pero PHP no tiene habilitada la extensiÃ³n ZIP, necesaria para leer archivos Excel. Mientras tanto el sistema usarÃ¡ el acta PDF profesional integrada. Active extension=zip en php.ini y reinicie el servidor.');
+                ->with('error', 'El formato se guardó, pero PHP no tiene habilitada la extensión ZIP, necesaria para leer archivos Excel. Mientras tanto el sistema usará el acta PDF profesional integrada. Active extension=zip en php.ini y reinicie el servidor.');
         }
 
-        return redirect()->route('equipos.bajas.index')->with('success', 'âœ… Formato de bajas cargado correctamente.');
+        return redirect()->route('equipos.bajas.index')->with('success', 'Formato de bajas cargado correctamente.');
     }
 
     /** PhpSpreadsheet necesita ZipArchive para abrir archivos .xlsx. */
@@ -130,7 +130,7 @@ class EquiposBajaController extends Controller
 
         if (!$this->soportaLecturaExcel()) {
             return redirect()->route('equipos.bajas.index')
-                ->with('error', 'âš ï¸ PHP no tiene habilitada la extensiÃ³n ZIP, necesaria para leer archivos Excel. Active extension=zip en php.ini y reinicie el servidor.');
+                ->with('error', 'PHP no tiene habilitada la extensión ZIP, necesaria para leer archivos Excel. Active extension=zip en php.ini y reinicie el servidor.');
         }
 
         $htmlPath = $this->cachePlantillaHtmlSimple(Storage::disk('public')->path($plantillaExcelPath));
@@ -352,7 +352,7 @@ class EquiposBajaController extends Controller
 
             $this->liberarCodigoIn($codigoIn);
 
-            return redirect()->route('equipos.bajas.index')->with('success', "âœ… Equipo dado de baja ({$baja->codigo_db}). PDF generado desde el formato Excel y cÃ³digo de inventario liberado.");
+            return redirect()->route('equipos.bajas.index')->with('success', "Equipo dado de baja ({$baja->codigo_db}). PDF generado desde el formato Excel y código de inventario liberado.");
         });
     }
 
@@ -424,7 +424,7 @@ class EquiposBajaController extends Controller
                 'pdf_path' => $pdfPath,
             ]);
 
-            return redirect()->route('equipos.bajas.index')->with('success', "âœ… Baja {$baja->codigo_db} actualizada y PDF regenerado desde el formato.");
+            return redirect()->route('equipos.bajas.index')->with('success', "Baja {$baja->codigo_db} actualizada y PDF regenerado desde el formato.");
         });
     }
 
@@ -495,7 +495,7 @@ class EquiposBajaController extends Controller
         return Storage::disk('public')->download($pdfPath, 'Acta-Baja-' . $baja->codigo_db . '.pdf');
     }
 
-    /** True si hay plantilla/HTML Excel y el PDF actual aÃºn es el acta genÃ©rica o no existe. */
+    /** True si hay plantilla/HTML Excel y el PDF actual aún es el acta genérica o no existe. */
     private function bajaShouldUseExcelPdf(EquipoBaja $baja): bool
     {
         $savedHtml = (string) data_get($baja->form_data, 'edited_html', '');
@@ -515,7 +515,7 @@ class EquiposBajaController extends Controller
             return true;
         }
 
-        // Los PDF antiguos (acta genÃ©rica o Excel sin marco) se regeneran.
+        // Los PDF antiguos (acta genérica o Excel sin marco) se regeneran.
         $path = (string) $baja->pdf_path;
 
         return str_contains($path, 'Acta-Baja-') || !str_contains($path, 'Excel-');
@@ -539,7 +539,7 @@ class EquiposBajaController extends Controller
             && Storage::disk('public')->exists($plantillaExcelPath)
             && $this->soportaLecturaExcel();
 
-        // Si ya hay PDF y no se fuerza regeneraciÃ³n Excel, reutilizar.
+        // Si ya hay PDF y no se fuerza regeneración Excel, reutilizar.
         if (
             !$preferExcel
             && $baja->pdf_path
@@ -620,11 +620,11 @@ class EquiposBajaController extends Controller
         $equipo = Equipo::query()->findOrFail($request->integer('equipo_id'));
         $this->authorize('delete', $equipo);
         $codigo = (string) ($equipo->codigo ?? $equipo->id);
-        // Si aÃºn tiene cÃ³digo de inventario (caso raro), liberarlo; en baja normal ya se liberÃ³ el IN.
+        // Si aún tiene código de inventario (caso raro), liberarlo; en baja normal ya se liberó el IN.
         CodigoEquipoService::liberarInventario((string) ($equipo->codigo ?? ''));
         $equipo->delete();
 
-        return redirect()->route('equipos.bajas.index')->with('success', "âœ… Equipo eliminado ({$codigo}). La historia (hoja de vida, inspecciones, etc.) se conserva.");
+        return redirect()->route('equipos.bajas.index')->with('success', "Equipo eliminado ({$codigo}). La historia (hoja de vida, inspecciones, etc.) se conserva.");
     }
 
  
@@ -673,8 +673,8 @@ class EquiposBajaController extends Controller
             }
         }
 
-        // Si no hay cachÃ© vÃ¡lida, intentar generar vista completa (con estilos del Excel)
-        // para que la ediciÃ³n se vea "tipo PDF", similar a inspecciÃ³n/hoja de vida.
+        // Si no hay caché válida, intentar generar vista completa (con estilos del Excel)
+        // para que la edición se vea "tipo PDF", similar a inspección/hoja de vida.
         $fullHtml = $this->excelToHtmlFull($excelAbsolutePath);
         if ($fullHtml !== null && strlen($fullHtml) > 0 && strlen($fullHtml) < $maxCacheSize) {
             $result = $this->extractBodyAndStyles($fullHtml);
@@ -714,7 +714,7 @@ class EquiposBajaController extends Controller
         return $result ?: $fullHtml;
     }
 
-    /** Formato completo como inspecciÃ³n/hoja de vida (Html writer). Retorna null si falla por memoria. */
+    /** Formato completo como inspección/hoja de vida (Html writer). Retorna null si falla por memoria. */
     private function excelToHtmlFull(string $absolutePath): ?string
     {
         $prevLimit = ini_get('memory_limit');
@@ -974,12 +974,12 @@ class EquiposBajaController extends Controller
             . '<div style="font-size:16px;font-weight:bold;color:#0f766e;">Acta de Baja â€” SAMS</div>'
             . '<div style="font-size:11px;color:#64748b;">Documento oficial de equipo dado de baja</div>'
             . '</div>'
-            . '<p><strong>CÃ³digo DB:</strong> ' . e((string) ($codigoDb ?: '(se asignarÃ¡ al guardar)')) . '</p>'
-            . '<p><strong>CÃ³digo IN:</strong> ' . e((string) ($defaults['CODIGO_IN'] ?? $equipo->codigo)) . '</p>'
+            . '<p><strong>Código DB:</strong> ' . e((string) ($codigoDb ?: '(se asignará al guardar)')) . '</p>'
+            . '<p><strong>Código IN:</strong> ' . e((string) ($defaults['CODIGO_IN'] ?? $equipo->codigo)) . '</p>'
             . '<p><strong>Equipo:</strong> ' . e((string) $equipo->nombre) . '</p>'
             . '<p><strong>Empresa:</strong> ' . e((string) ($equipo->empresa?->nombre ?? '')) . '</p>'
             . '<p><strong>Fecha:</strong> ' . e((string) ($defaults['FECHA_BAJA'] ?? now()->format('Y-m-d'))) . '</p>'
-            . '<p style="margin-top:12px;color:#64748b;font-size:12px;">Complete el resumen de la baja arriba. Al guardar se generarÃ¡ el PDF profesional del acta y el cÃ³digo de inventario quedarÃ¡ disponible.</p>'
+            . '<p style="margin-top:12px;color:#64748b;font-size:12px;">Complete el resumen de la baja arriba. Al guardar se generará el PDF profesional del acta y el código de inventario quedará disponible.</p>'
             . '</div>';
     }
 

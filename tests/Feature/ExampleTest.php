@@ -16,4 +16,9 @@ class ExampleTest extends TestCase
 
         $response->assertRedirect(route('login'));
     }
+
+    public function test_public_landing_is_reachable_for_guests(): void
+    {
+        $this->get('/inicio')->assertStatus(200);
+    }
 }

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'SAMS - Sistema de GestiÃ³n')</title>
+    <title>@yield('title', 'SAMS - Sistema de Gestión')</title>
     <x-sams-assets />
     @php
         $samsLightweightUi = (bool) config('sams.lightweight_ui', true);
@@ -179,7 +179,7 @@
         $accentRgb = $primaryRgb ? $mixRgb($primaryRgb, [255, 255, 255], 0.74) : [59, 130, 246];
         $accentHex = $rgbToHex($accentRgb);
 
-        // Regla global anti-neÃ³n: base oscura/neutra + color empresa solo como acento.
+        // Regla global anti-neón: base oscura/neutra + color empresa solo como acento.
         $uiPrimary = $empresaColor
             ? ($primaryIsHarsh ? $rgbToHex($mixRgb($primaryRgb, [17, 24, 39], 0.16)) : ($normalizeAccentHex($empresaColor) ?: $empresaColor))
             : '#42A0D7';
@@ -513,7 +513,7 @@
     @yield('styles')
 </head>
 <body class="min-h-screen relative overflow-hidden bg-[#f8fbff] pw-typography {{ $pwBrandedTheme ? 'pw-theme-branded' : '' }}" data-pw-branded="{{ $pwBrandedTheme ? '1' : '0' }}" data-cards-radius="{{ $cardsCfg['radius'] ?? 'xl' }}" data-cards-shadow="{{ $cardsCfg['shadow'] ?? 'soft' }}" data-cards-style="{{ $cardsCfg['style'] ?? 'solid' }}" data-cards-bg-type="{{ $cardsBgType ?? 'solid' }}" data-menu-layout="{{ $menuLayout }}" data-menu-size="{{ $menuCfg['item_size'] ?? 'md' }}" data-table-header-size="{{ $tablesCfg['header_size'] ?? 'md' }}" data-table-border="{{ $tablesCfg['border_style'] ?? 'solid' }}" data-table-row-lines="{{ $tablesCfg['row_lines'] ?? 'subtle' }}" data-typography-size="{{ $typographyCfg['size'] ?? 'md' }}" data-modal-size="{{ $modalsCfg['size'] ?? 'md' }}" data-modal-bg-type="{{ $modalsCfg['bg_type'] ?? 'solid' }}">
-    {{-- Gradiente de marca siempre presente (evita fondo negro plano si el modo ligero oculta partÃ­culas) --}}
+    {{-- Gradiente de marca siempre presente (evita fondo negro plano si el modo ligero oculta partículas) --}}
     <div id="sams-panel-bg" class="fixed inset-0 -z-10 pointer-events-none min-h-[100dvh] sams-panel-bg" aria-hidden="true"></div>
     @unless($samsLightweightUi)
     <div id="particles-js" class="fixed inset-0 -z-10"></div>
@@ -523,7 +523,7 @@
     <!-- Notifications Container -->
     <div id="notificationsContainer" class="fixed top-4 right-4 z-[9999] max-w-sm w-full space-y-2 pointer-events-none"></div>
 
-    <!-- Modal de confirmaciÃ³n (Â¿Seguro que deseas...? Aceptar / Cancelar) -->
+    <!-- Modal de confirmación (¿Seguro que deseas...? Aceptar / Cancelar) -->
     @include('partials.confirm-modal')
 
     @php
@@ -563,14 +563,14 @@
                         </div>
 
                         <div class="min-w-0">
-                            <h2 class="text-xl md:text-2xl font-bold truncate sams-header-title">@yield('header-title', 'Panel de AdministraciÃ³n')</h2>
-                            <p class="text-sm md:text-base truncate sams-header-subtitle">@yield('header-subtitle', 'Sistema de GestiÃ³n SAMS')</p>
+                            <h2 class="text-xl md:text-2xl font-bold truncate sams-header-title">@yield('header-title', 'Panel de Administración')</h2>
+                            <p class="text-sm md:text-base truncate sams-header-subtitle">@yield('header-subtitle', 'Sistema de Gestión SAMS')</p>
                         </div>
                     </div>
 
                     <div class="flex flex-wrap items-center gap-2 md:justify-end">
                         @if($pendingAccessCount > 0)
-                        {{-- pt-2 en el envoltorio evita el "hueco" entre el enlace y el panel: sin eso el hover se pierde y el clic cae en el <a> y recarga la pÃ¡gina. --}}
+                        {{-- pt-2 en el envoltorio evita el "hueco" entre el enlace y el panel: sin eso el hover se pierde y el clic cae en el <a> y recarga la página. --}}
                         <div class="relative z-[9000] group">
                             <a href="{{ route('users.complete', ['status' => 'pending']) }}" class="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium rounded-lg border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100">
                                 <i data-lucide="users" class="w-4 h-4"></i>
