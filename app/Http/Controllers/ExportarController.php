@@ -11,6 +11,7 @@ use App\Models\HojaVidaDocumento;
 use App\Models\User;
 use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
+use App\Support\SensitiveDocumentStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -137,11 +138,12 @@ class ExportarController extends Controller
         if (!$inspeccion) {
             return redirect()->route('exportar.index')->with('error', 'No hay inspección para este equipo.');
         }
-        if (!$inspeccion->pdf_path || !Storage::disk('public')->exists($inspeccion->pdf_path)) {
+        if (!$inspeccion->pdf_path || !SensitiveDocumentStorage::exists($inspeccion->pdf_path)) {
             return redirect()->route('exportar.index')->with('error', 'El PDF de inspección aún no está generado.');
         }
         $nombre = 'inspeccion-' . ($equipo->codigo ?: $equipo->id) . '.pdf';
-        return Storage::disk('public')->download($inspeccion->pdf_path, $nombre);
+
+        return SensitiveDocumentStorage::download($inspeccion->pdf_path, $nombre);
     }
 
     public function downloadBaja(Equipo $equipo)
@@ -152,10 +154,11 @@ class ExportarController extends Controller
         if (!$baja) {
             return redirect()->route('exportar.index')->with('error', 'No hay formato de baja para este equipo.');
         }
-        if (!$baja->pdf_path || !Storage::disk('public')->exists($baja->pdf_path)) {
+        if (!$baja->pdf_path || !SensitiveDocumentStorage::exists($baja->pdf_path)) {
             return redirect()->route('exportar.index')->with('error', 'El PDF de baja aún no está disponible.');
         }
-        return Storage::disk('public')->download($baja->pdf_path, $baja->codigo_db . '.pdf');
+
+        return SensitiveDocumentStorage::download($baja->pdf_path, $baja->codigo_db . '.pdf');
     }
 
     public function previewHojaVidaCompleta(Equipo $equipo)

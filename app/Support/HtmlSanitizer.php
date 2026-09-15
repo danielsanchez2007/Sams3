@@ -15,10 +15,17 @@ class HtmlSanitizer
         'svg', 'math', 'style',
     ];
 
+    /** @var list<string> */
+    private const FORBIDDEN_INTERACTIVE_TAGS = [
+        'script', 'iframe', 'object', 'embed', 'link', 'meta', 'base',
+        'applet', 'form', 'input', 'button', 'textarea', 'select',
+        'svg', 'math',
+    ];
+
     public static function sanitizeUserHtml(string $html): string
     {
         $html = self::stripWithRegex($html, true);
-        $html = self::stripWithDom($html, true);
+        $html = self::stripWithDom($html, 'strict');
         $html = self::stripWithRegex($html, true);
 
         return $html;
@@ -30,7 +37,7 @@ class HtmlSanitizer
     public static function sanitizeTemplateHtml(string $html): string
     {
         $html = self::stripWithRegex($html, false);
-        $html = self::stripWithDom($html, false);
+        $html = self::stripWithDom($html, 'interactive');
         $html = self::stripWithRegex($html, false);
 
         return $html;
@@ -56,7 +63,10 @@ class HtmlSanitizer
         return $html;
     }
 
-    private static function stripWithDom(string $html, bool $strict): string
+    /**
+     * @param  'strict'|'interactive'|'basic'  $mode
+     */
+    private static function stripWithDom(string $html, string $mode): string
     {
         if (trim($html) === '' || !class_exists(\DOMDocument::class)) {
             return $html;
@@ -78,9 +88,11 @@ class HtmlSanitizer
             return $html;
         }
 
-        $forbidden = $strict
-            ? self::FORBIDDEN_TAGS
-            : ['script', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'applet'];
+        $forbidden = match ($mode) {
+            'strict' => self::FORBIDDEN_TAGS,
+            'interactive' => self::FORBIDDEN_INTERACTIVE_TAGS,
+            default => ['script', 'iframe', 'object', 'embed', 'link', 'meta', 'base', 'applet'],
+        };
 
         $nodes = [];
         $xpath = new \DOMXPath($dom);

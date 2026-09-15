@@ -193,6 +193,48 @@ class UploadedFileStorage
         ]);
     }
 
+    /**
+     * Documentos adjuntos (no imagen): MIME real + extensión allowlist.
+     *
+     * @throws \RuntimeException
+     */
+    public static function storePublicDocument(UploadedFile $file, string $directory): string
+    {
+        $allowedMimes = [
+            'application/pdf',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'application/vnd.ms-excel',
+        ];
+
+        $path = self::storePublic($file, $directory, $allowedMimes);
+        self::assertAllowedExtension($file, $path);
+
+        return $path;
+    }
+
+    /** @return array<string, string> */
+    public static function secureDownloadHeaders(): array
+    {
+        return [
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => 'sandbox',
+            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
+        ];
+    }
+
+    private static function assertAllowedExtension(UploadedFile $file, string $storedPath): void
+    {
+        $storedExt = strtolower(pathinfo($storedPath, PATHINFO_EXTENSION));
+        $originalExt = strtolower(pathinfo((string) $file->getClientOriginalName(), PATHINFO_EXTENSION));
+
+        $allowed = ['pdf', 'docx', 'xlsx', 'xls'];
+        if (!in_array($storedExt, $allowed, true) || ($originalExt !== '' && !in_array($originalExt, $allowed, true))) {
+            self::deletePublic($storedPath);
+            throw new \RuntimeException('Extensión de archivo no permitida.');
+        }
+    }
+
     private static function detectMime(string $tmpPath, UploadedFile $file): string
     {
         $mime = '';

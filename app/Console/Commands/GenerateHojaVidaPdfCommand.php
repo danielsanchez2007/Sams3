@@ -10,6 +10,7 @@ use App\Models\User;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
+use App\Support\SensitiveDocumentStorage;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Writer\Html as SpreadsheetHtmlWriter;
@@ -46,8 +47,8 @@ class GenerateHojaVidaPdfCommand extends Command
 
             $lockKey = 'hv_pdf_generating_' . (int) $doc->id;
 
-            if (!$force && $doc->pdf_path && Storage::disk('public')->exists($doc->pdf_path)) {
-                $size = (int) (Storage::disk('public')->size($doc->pdf_path) ?? 0);
+            if (!$force && $doc->pdf_path && SensitiveDocumentStorage::exists($doc->pdf_path)) {
+                $size = SensitiveDocumentStorage::size($doc->pdf_path);
                 if ($size >= 20000) {
                     $this->info('PDF ya existe: ' . $doc->pdf_path);
                     return self::SUCCESS;
@@ -101,14 +102,13 @@ class GenerateHojaVidaPdfCommand extends Command
                     $out = $pdf->output();
                     if (is_string($out) && strlen($out) >= 12000) {
                         $filename = 'hoja_vida/pdf/' . $equipo->id . '-' . now()->format('YmdHis') . '.pdf';
-                        Storage::disk('public')->makeDirectory('hoja_vida/pdf');
-                        Storage::disk('public')->put($filename, $out);
+                        SensitiveDocumentStorage::put($filename, $out);
 
                         $doc->update([
                             'pdf_path' => $filename,
                         ]);
 
-                        $this->info('PDF generado (Excel->HTML): storage/' . $filename);
+                        $this->info('PDF generado (Excel->HTML): private/' . $filename);
                         return self::SUCCESS;
                     }
 
@@ -128,14 +128,13 @@ class GenerateHojaVidaPdfCommand extends Command
 
                     if (is_string($out) && strlen($out) >= 12000) {
                         $filename = 'hoja_vida/pdf/' . $equipo->id . '-' . now()->format('YmdHis') . '.pdf';
-                        Storage::disk('public')->makeDirectory('hoja_vida/pdf');
-                        Storage::disk('public')->put($filename, $out);
+                        SensitiveDocumentStorage::put($filename, $out);
 
                         $doc->update([
                             'pdf_path' => $filename,
                         ]);
 
-                        $this->info('PDF generado (Excel): storage/' . $filename);
+                        $this->info('PDF generado (Excel): private/' . $filename);
                         return self::SUCCESS;
                     }
                 } catch (\Throwable $e) {
@@ -197,14 +196,13 @@ class GenerateHojaVidaPdfCommand extends Command
             }
 
             $filename = 'hoja_vida/pdf/' . $equipo->id . '-' . now()->format('YmdHis') . '.pdf';
-            Storage::disk('public')->makeDirectory('hoja_vida/pdf');
-            Storage::disk('public')->put($filename, $out);
+            SensitiveDocumentStorage::put($filename, $out);
 
             $doc->update([
                 'pdf_path' => $filename,
             ]);
 
-            $this->info('PDF generado: storage/' . $filename);
+            $this->info('PDF generado: private/' . $filename);
             return self::SUCCESS;
         } catch (\Throwable $e) {
             $this->error($e->getMessage());

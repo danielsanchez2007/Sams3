@@ -11,6 +11,7 @@ use App\Models\TipoEquipo;
 use App\Models\User;
 use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
+use App\Support\SensitiveDocumentStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -228,10 +229,10 @@ class HojaVidaController extends Controller
         if ($download) {
             $fileHeaders['Content-Disposition'] = 'attachment; filename="hoja_vida_' . ($equipo->codigo ?: $equipo->id) . '.pdf"';
         }
-        if (!$force && $doc->pdf_path && Storage::disk('public')->exists($doc->pdf_path)) {
-            $size = (int) (Storage::disk('public')->size($doc->pdf_path) ?? 0);
+        if (!$force && $doc->pdf_path && SensitiveDocumentStorage::exists($doc->pdf_path)) {
+            $size = SensitiveDocumentStorage::size($doc->pdf_path);
             if ($size >= self::HV_PDF_MIN_SIZE) {
-                return response()->file(Storage::disk('public')->path($doc->pdf_path), $fileHeaders);
+                return SensitiveDocumentStorage::inlineFileResponse($doc->pdf_path, $fileHeaders);
             }
         }
 
@@ -278,17 +279,14 @@ class HojaVidaController extends Controller
 
                 if (is_string($out) && strlen($out) >= 1200) {
                     $filename = 'hoja_vida/pdf/' . $equipo->id . '-' . now()->format('YmdHis') . '.pdf';
-                    Storage::disk('public')->makeDirectory('hoja_vida/pdf');
-                    Storage::disk('public')->put($filename, $out);
+                    SensitiveDocumentStorage::put($filename, $out);
 
                     $doc->update([
                         'pdf_path' => $filename,
                         'actualizado_por' => auth()->id(),
                     ]);
 
-                    return response()->file(Storage::disk('public')->path($filename), [
-                        'Content-Type' => 'application/pdf',
-                    ]);
+                    return SensitiveDocumentStorage::inlineFileResponse($filename);
                 }
             } catch (\Throwable $e) {
                 // fallback to HTML-based PDF below
@@ -380,21 +378,19 @@ class HojaVidaController extends Controller
         }
 
         $filename = 'hoja_vida/pdf/' . $equipo->id . '-' . now()->format('YmdHis') . '.pdf';
-        Storage::disk('public')->makeDirectory('hoja_vida/pdf');
-        Storage::disk('public')->put($filename, $out);
+        SensitiveDocumentStorage::put($filename, $out);
 
         $doc->update([
             'pdf_path' => $filename,
             'actualizado_por' => auth()->id(),
         ]);
 
-        $fileHeaders = [
-            'Content-Type' => 'application/pdf',
-        ];
+        $fileHeaders = [];
         if ((string) request()->query('download', '0') === '1') {
             $fileHeaders['Content-Disposition'] = 'attachment; filename="hoja_vida_' . ($equipo->codigo ?: $equipo->id) . '.pdf"';
         }
-        return response()->file(Storage::disk('public')->path($filename), $fileHeaders);
+
+        return SensitiveDocumentStorage::inlineFileResponse($filename, $fileHeaders);
     }
 
     public function html(ClaseEquipo $clase, Equipo $equipo)
@@ -464,8 +460,8 @@ class HojaVidaController extends Controller
 
         $force = (string) $request->query('force', '0') === '1';
 
-        if (!$force && $doc->pdf_path && Storage::disk('public')->exists($doc->pdf_path)) {
-            $size = (int) (Storage::disk('public')->size($doc->pdf_path) ?? 0);
+        if (!$force && $doc->pdf_path && SensitiveDocumentStorage::exists($doc->pdf_path)) {
+            $size = SensitiveDocumentStorage::size($doc->pdf_path);
             if ($size >= self::HV_PDF_MIN_SIZE) {
                 return response()->json([
                     'ready' => true,
@@ -506,36 +502,33 @@ class HojaVidaController extends Controller
         return response()->json([
             'ready' => false,
             'generating' => (bool) $generating,
-            'size' => $doc->pdf_path && Storage::disk('public')->exists($doc->pdf_path)
-                ? (int) (Storage::disk('public')->size($doc->pdf_path) ?? 0)
+            'size' => $doc->pdf_path && SensitiveDocumentStorage::exists($doc->pdf_path)
+                ? SensitiveDocumentStorage::size($doc->pdf_path)
                 : 0,
         ]);
     }
 
     public function pdfFile(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanViewModule('hoja_vida');
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
+        if ($equipo->empresa_id) {
+            $this->moduleAuthz()->assertTenantOwns((int) $equipo->empresa_id);
+        }
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
-        if (!$doc || !$doc->pdf_path || !Storage::disk('public')->exists($doc->pdf_path)) {
+        if (!$doc || !$doc->pdf_path || !SensitiveDocumentStorage::exists($doc->pdf_path)) {
             abort(404);
         }
 
-        $size = (int) (Storage::disk('public')->size($doc->pdf_path) ?? 0);
-        abort_unless($size >= self::HV_PDF_MIN_SIZE, 404);
+        abort_unless(SensitiveDocumentStorage::size($doc->pdf_path) >= self::HV_PDF_MIN_SIZE, 404);
 
-        $headers = [
-            'Content-Type' => 'application/pdf',
-            'Cache-Control' => 'no-store, no-cache, must-revalidate, max-age=0',
-            'Pragma' => 'no-cache',
-            'Expires' => '0',
-        ];
-
+        $headers = [];
         if ((string) $request->query('download', '0') === '1') {
             $headers['Content-Disposition'] = 'attachment; filename="hoja_vida_' . (int) $equipo->id . '.pdf"';
         }
 
-        return response()->file(Storage::disk('public')->path($doc->pdf_path), $headers);
+        return SensitiveDocumentStorage::inlineFileResponse($doc->pdf_path, $headers);
     }
 
     private function sanitizeHtmlForPdf(string $html): string

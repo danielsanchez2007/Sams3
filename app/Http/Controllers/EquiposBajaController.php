@@ -15,6 +15,7 @@ use App\Services\CodigoEquipoService;
 use App\Services\EmpresaContext;
 use App\Support\EquipoDetalle;
 use App\Support\HtmlSanitizer;
+use App\Support\SensitiveDocumentStorage;
 use App\Support\UploadedFileStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -384,8 +385,8 @@ class EquiposBajaController extends Controller
                 $finalHtml = $this->blankRemainingTokens($finalHtml);
             }
 
-            if ($baja->pdf_path && Storage::disk('public')->exists($baja->pdf_path)) {
-                Storage::disk('public')->delete($baja->pdf_path);
+            if ($baja->pdf_path) {
+                SensitiveDocumentStorage::delete($baja->pdf_path);
             }
 
             if ($finalHtml !== '') {
@@ -464,8 +465,10 @@ class EquiposBajaController extends Controller
         $baja->loadMissing('equipo');
         if ($baja->equipo) {
             $this->authorize('view', $baja->equipo);
+            if ($baja->equipo->empresa_id) {
+                $this->moduleAuthz()->assertTenantOwns((int) $baja->equipo->empresa_id);
+            }
         }
-
 
         $needsExcel = $this->bajaShouldUseExcelPdf($baja);
         $pdfPath = $this->ensureBajaPdf($baja, $needsExcel);
@@ -473,9 +476,7 @@ class EquiposBajaController extends Controller
             $baja->update(['pdf_path' => $pdfPath]);
         }
 
-        return response()->file(Storage::disk('public')->path($pdfPath), [
-            'Content-Type' => 'application/pdf',
-        ]);
+        return SensitiveDocumentStorage::inlineFileResponse($pdfPath);
     }
 
     public function downloadPdf(EquipoBaja $baja)
@@ -483,8 +484,10 @@ class EquiposBajaController extends Controller
         $baja->loadMissing('equipo');
         if ($baja->equipo) {
             $this->authorize('view', $baja->equipo);
+            if ($baja->equipo->empresa_id) {
+                $this->moduleAuthz()->assertTenantOwns((int) $baja->equipo->empresa_id);
+            }
         }
-
 
         $needsExcel = $this->bajaShouldUseExcelPdf($baja);
         $pdfPath = $this->ensureBajaPdf($baja, $needsExcel);
@@ -492,7 +495,7 @@ class EquiposBajaController extends Controller
             $baja->update(['pdf_path' => $pdfPath]);
         }
 
-        return Storage::disk('public')->download($pdfPath, 'Acta-Baja-' . $baja->codigo_db . '.pdf');
+        return SensitiveDocumentStorage::download($pdfPath, 'Acta-Baja-' . $baja->codigo_db . '.pdf');
     }
 
     /** True si hay plantilla/HTML Excel y el PDF actual aún es el acta genérica o no existe. */
@@ -511,7 +514,7 @@ class EquiposBajaController extends Controller
             return false;
         }
 
-        if (!$baja->pdf_path || !Storage::disk('public')->exists($baja->pdf_path)) {
+        if (!$baja->pdf_path || !SensitiveDocumentStorage::exists($baja->pdf_path)) {
             return true;
         }
 
@@ -543,7 +546,7 @@ class EquiposBajaController extends Controller
         if (
             !$preferExcel
             && $baja->pdf_path
-            && Storage::disk('public')->exists($baja->pdf_path)
+            && SensitiveDocumentStorage::exists($baja->pdf_path)
             && $savedHtml === ''
             && !$tieneExcel
         ) {
@@ -578,14 +581,14 @@ class EquiposBajaController extends Controller
                 $newPath = $this->generateProfessionalPdf($equipo, $codigoDb, $codigoIn, $fechaBaja, $motivo, $observaciones);
             }
 
-            if ($baja->pdf_path && $baja->pdf_path !== $newPath && Storage::disk('public')->exists($baja->pdf_path)) {
-                Storage::disk('public')->delete($baja->pdf_path);
+            if ($baja->pdf_path && $baja->pdf_path !== $newPath) {
+                SensitiveDocumentStorage::delete($baja->pdf_path);
             }
 
             return $newPath;
         }
 
-        if ($baja->pdf_path && Storage::disk('public')->exists($baja->pdf_path)) {
+        if ($baja->pdf_path && SensitiveDocumentStorage::exists($baja->pdf_path)) {
             return $baja->pdf_path;
         }
 
@@ -919,7 +922,7 @@ class EquiposBajaController extends Controller
 
         $safeCode = preg_replace('/[^A-Za-z0-9\-_]/', '_', $codigoDb) ?: 'baja';
         $filename = 'bajas/pdfs/Excel-' . $safeCode . '-' . now()->format('YmdHis') . '.pdf';
-        Storage::disk('public')->put($filename, $pdf->output());
+        SensitiveDocumentStorage::put($filename, $pdf->output());
 
         return $filename;
     }
@@ -959,7 +962,7 @@ class EquiposBajaController extends Controller
 
         $safeCode = preg_replace('/[^A-Za-z0-9\-_]/', '_', $codigoDb) ?: 'baja';
         $filename = 'bajas/pdfs/Acta-Baja-' . $safeCode . '-' . now()->format('YmdHis') . '.pdf';
-        Storage::disk('public')->put($filename, $pdf->output());
+        SensitiveDocumentStorage::put($filename, $pdf->output());
 
         return $filename;
     }

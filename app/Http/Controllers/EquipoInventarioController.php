@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Support\UploadedFileStorage;
 use Illuminate\Support\Facades\Storage;
 
 class EquipoInventarioController extends Controller
@@ -433,7 +434,7 @@ class EquipoInventarioController extends Controller
             return redirect()->route('equipos.show', $equipo)->with('success', 'Evidencia agregada correctamente.');
         }
 
-        $path = $file->store('equipos/archivos', 'public');
+        $path = UploadedFileStorage::storePublicDocument($file, 'equipos/archivos');
 
         EquipoArchivo::create([
             'equipo_id' => $equipo->id,
@@ -454,7 +455,11 @@ class EquipoInventarioController extends Controller
             $this->authorize('view', $archivo->equipo);
         }
 
-        return Storage::disk('public')->download($archivo->path, $archivo->original_name ?: $archivo->nombre);
+        return Storage::disk('public')->download(
+            $archivo->path,
+            $archivo->original_name ?: $archivo->nombre,
+            UploadedFileStorage::secureDownloadHeaders()
+        );
     }
 
     public function destroyArchivo(Equipo $equipo, EquipoArchivo $archivo)

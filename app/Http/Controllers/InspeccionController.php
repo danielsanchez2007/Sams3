@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\InspeccionPlantilla;
 use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
+use App\Support\SensitiveDocumentStorage;
 use App\Support\UploadedFileStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -246,8 +247,7 @@ class InspeccionController extends Controller
         $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => false])->loadHTML($wrapped)->setPaper('a4');
         $out = $pdf->output();
         $filename = 'inspeccion/pdf/' . $equipo->id . '-' . $inspeccion->id . '-' . now()->format('YmdHis') . '.pdf';
-        Storage::disk('public')->makeDirectory('inspeccion/pdf');
-        Storage::disk('public')->put($filename, $out);
+        SensitiveDocumentStorage::put($filename, $out);
         $inspeccion->update(['pdf_path' => $filename]);
 
         return redirect()->route('inspeccion.equipos', $equipo->claseEquipo)->with('success', 'Inspección guardada. Ya puedes descargar el PDF.');
@@ -297,8 +297,7 @@ class InspeccionController extends Controller
         $pdf = Pdf::setOptions(['isHtml5ParserEnabled' => true, 'isRemoteEnabled' => false])->loadHTML($wrapped)->setPaper('a4');
         $out = $pdf->output();
         $filename = 'inspeccion/pdf/' . $equipo->id . '-' . $inspeccion->id . '-' . now()->format('YmdHis') . '.pdf';
-        Storage::disk('public')->makeDirectory('inspeccion/pdf');
-        Storage::disk('public')->put($filename, $out);
+        SensitiveDocumentStorage::put($filename, $out);
         $inspeccion->update(['pdf_path' => $filename]);
 
         return redirect()->route('inspeccion.equipos', $equipo->claseEquipo)->with('success', 'Inspección actualizada.');
@@ -307,11 +306,16 @@ class InspeccionController extends Controller
     public function download(EquipoInspeccion $inspeccion)
     {
         $this->ensureCanViewInspeccion();
-        if (!$inspeccion->pdf_path || !Storage::disk('public')->exists($inspeccion->pdf_path)) {
+        $inspeccion->loadMissing('equipo');
+        if ($inspeccion->equipo?->empresa_id) {
+            $this->moduleAuthz()->assertTenantOwns((int) $inspeccion->equipo->empresa_id);
+        }
+        if (!$inspeccion->pdf_path || !SensitiveDocumentStorage::exists($inspeccion->pdf_path)) {
             return redirect()->route('inspeccion.edit', $inspeccion)->with('error', 'No hay PDF generado para esta inspección.');
         }
         $nombre = 'inspeccion-' . ($inspeccion->equipo->codigo ?: $inspeccion->equipo->id) . '.pdf';
-        return Storage::disk('public')->download($inspeccion->pdf_path, $nombre);
+
+        return SensitiveDocumentStorage::download($inspeccion->pdf_path, $nombre);
     }
 
     /**
