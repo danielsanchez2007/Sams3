@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
 use App\Support\SensitiveDocumentStorage;
+use App\Support\TenantGuard;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -44,6 +45,8 @@ class HojaVidaController extends Controller
     public function form(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
         $this->assertCanViewModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless($equipo->activo, 404);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
@@ -53,6 +56,8 @@ class HojaVidaController extends Controller
     public function store(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
         $this->assertCanEditModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless($equipo->activo, 404);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
@@ -203,6 +208,8 @@ class HojaVidaController extends Controller
     public function pdf(ClaseEquipo $clase, Equipo $equipo)
     {
         $this->assertCanViewModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         if (function_exists('session_write_close')) {
@@ -355,7 +362,6 @@ class HojaVidaController extends Controller
         }
 
         $wrapped = $this->wrapHtmlForPdf($body, $extracted['styles']);
-        $wrappedWithStats = str_replace('<body>', '<body><pre style="font-size:12px; white-space:pre-wrap;">' . e(json_encode($stats, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)) . '</pre>', $wrapped);
 
         try {
             $pdf = Pdf::setOptions([
@@ -396,6 +402,8 @@ class HojaVidaController extends Controller
     public function html(ClaseEquipo $clase, Equipo $equipo)
     {
         $this->assertCanViewModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
@@ -439,6 +447,9 @@ class HojaVidaController extends Controller
 
     public function pdfPreview(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanViewModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
         // La vista previa ahora se muestra en un modal; redirigir al formulario.
         return redirect()->route('hoja-vida.form', [$clase, $equipo])
@@ -447,6 +458,9 @@ class HojaVidaController extends Controller
 
     public function pdfStatus(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
+        $this->assertCanViewModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
@@ -511,10 +525,9 @@ class HojaVidaController extends Controller
     public function pdfFile(Request $request, ClaseEquipo $clase, Equipo $equipo)
     {
         $this->assertCanViewModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
-        if ($equipo->empresa_id) {
-            $this->moduleAuthz()->assertTenantOwns((int) $equipo->empresa_id);
-        }
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
         if (!$doc || !$doc->pdf_path || !SensitiveDocumentStorage::exists($doc->pdf_path)) {
@@ -720,6 +733,8 @@ class HojaVidaController extends Controller
     public function download(ClaseEquipo $clase, Equipo $equipo)
     {
         $this->assertCanViewModule('hoja_vida');
+        TenantGuard::assertClaseEquipo($clase);
+        TenantGuard::assertEquipo($equipo);
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();

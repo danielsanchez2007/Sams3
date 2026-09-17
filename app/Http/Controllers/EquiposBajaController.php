@@ -16,6 +16,7 @@ use App\Services\EmpresaContext;
 use App\Support\EquipoDetalle;
 use App\Support\HtmlSanitizer;
 use App\Support\SensitiveDocumentStorage;
+use App\Support\TenantGuard;
 use App\Support\UploadedFileStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -462,13 +463,8 @@ class EquiposBajaController extends Controller
 
     public function showPdf(EquipoBaja $baja)
     {
-        $baja->loadMissing('equipo');
-        if ($baja->equipo) {
-            $this->authorize('view', $baja->equipo);
-            if ($baja->equipo->empresa_id) {
-                $this->moduleAuthz()->assertTenantOwns((int) $baja->equipo->empresa_id);
-            }
-        }
+        TenantGuard::assertBaja($baja);
+        $this->authorize('view', $baja->equipo);
 
         $needsExcel = $this->bajaShouldUseExcelPdf($baja);
         $pdfPath = $this->ensureBajaPdf($baja, $needsExcel);
@@ -481,13 +477,8 @@ class EquiposBajaController extends Controller
 
     public function downloadPdf(EquipoBaja $baja)
     {
-        $baja->loadMissing('equipo');
-        if ($baja->equipo) {
-            $this->authorize('view', $baja->equipo);
-            if ($baja->equipo->empresa_id) {
-                $this->moduleAuthz()->assertTenantOwns((int) $baja->equipo->empresa_id);
-            }
-        }
+        TenantGuard::assertBaja($baja);
+        $this->authorize('view', $baja->equipo);
 
         $needsExcel = $this->bajaShouldUseExcelPdf($baja);
         $pdfPath = $this->ensureBajaPdf($baja, $needsExcel);

@@ -109,7 +109,9 @@ Route::middleware(['auth', 'password.must_change', 'profile.complete'])->group(f
         Route::post('/plantilla', [InspeccionController::class, 'storePlantilla'])->name('plantilla.store');
         Route::get('/clase/{clase}/equipos', [InspeccionController::class, 'equipos'])->name('equipos')->whereNumber('clase');
         Route::get('/equipo/{equipo}/form', [InspeccionController::class, 'form'])->name('form')->whereNumber('equipo');
-        Route::post('/verificar-obligatoria', [InspeccionController::class, 'verificarObligatoria'])->name('verificar-obligatoria');
+        Route::post('/verificar-obligatoria', [InspeccionController::class, 'verificarObligatoria'])
+            ->middleware('throttle:10,1')
+            ->name('verificar-obligatoria');
         Route::post('/equipo/{equipo}', [InspeccionController::class, 'store'])->name('store')->whereNumber('equipo');
         Route::get('/registro/{inspeccion}/edit', [InspeccionController::class, 'edit'])->name('edit')->whereNumber('inspeccion');
         Route::put('/registro/{inspeccion}', [InspeccionController::class, 'update'])->name('update')->whereNumber('inspeccion');

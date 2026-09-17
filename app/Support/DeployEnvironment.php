@@ -2,6 +2,7 @@
 
 namespace App\Support;
 
+use App\Support\SensitiveDocumentStorage;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\URL;
 use Throwable;
@@ -12,6 +13,7 @@ class DeployEnvironment
     {
         self::forgetViteHotFile();
         self::ensureStorageLink();
+        self::ensurePrivateDocumentDirs();
         self::alignPublicUrls();
     }
 
@@ -46,6 +48,13 @@ class DeployEnvironment
             }
         } catch (Throwable) {
             // El fallback HTTP está en PublicStorageController.
+        }
+    }
+
+    public static function ensurePrivateDocumentDirs(): void
+    {
+        foreach (SensitiveDocumentStorage::SENSITIVE_PREFIXES as $prefix) {
+            File::ensureDirectoryExists(storage_path('app/private/' . rtrim($prefix, '/')));
         }
     }
 

@@ -10,6 +10,7 @@ use App\Models\InspeccionPlantilla;
 use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
 use App\Support\SensitiveDocumentStorage;
+use App\Support\TenantGuard;
 use App\Support\UploadedFileStorage;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -145,6 +146,7 @@ class InspeccionController extends Controller
     public function form(Request $request, Equipo $equipo)
     {
         $this->ensureCanEditInspeccion();
+        TenantGuard::assertEquipo($equipo);
         abort_unless($equipo->activo, 404);
 
         $equipo->loadMissing(['imagenes', 'empresa', 'sede', 'bodega', 'tipoEquipo', 'claseEquipo']);
@@ -181,7 +183,7 @@ class InspeccionController extends Controller
 
     public function verificarObligatoria(Request $request)
     {
-        $request->validate(['password' => ['required', 'string']]);
+        $request->validate(['password' => ['required', 'string', 'max:255']]);
         if (!Hash::check($request->input('password'), auth()->user()->getAuthPassword())) {
             return response()->json(['ok' => false, 'message' => 'Contraseña incorrecta.'], 422);
         }
@@ -191,6 +193,7 @@ class InspeccionController extends Controller
     public function store(Request $request, Equipo $equipo)
     {
         $this->ensureCanEditInspeccion();
+        TenantGuard::assertEquipo($equipo);
         abort_unless($equipo->activo, 404);
 
         $plantilla = InspeccionPlantilla::query()->where('clase_equipo_id', $equipo->clase_equipo_id)->first();
@@ -256,6 +259,7 @@ class InspeccionController extends Controller
     public function edit(EquipoInspeccion $inspeccion)
     {
         $this->ensureCanEditInspeccion();
+        TenantGuard::assertInspeccion($inspeccion);
         $equipo = $inspeccion->equipo;
         abort_unless($equipo->activo, 404);
         $clase = $equipo->claseEquipo;
@@ -272,6 +276,7 @@ class InspeccionController extends Controller
     public function update(Request $request, EquipoInspeccion $inspeccion)
     {
         $this->ensureCanEditInspeccion();
+        TenantGuard::assertInspeccion($inspeccion);
         $equipo = $inspeccion->equipo;
         abort_unless($equipo->activo, 404);
 
@@ -306,10 +311,7 @@ class InspeccionController extends Controller
     public function download(EquipoInspeccion $inspeccion)
     {
         $this->ensureCanViewInspeccion();
-        $inspeccion->loadMissing('equipo');
-        if ($inspeccion->equipo?->empresa_id) {
-            $this->moduleAuthz()->assertTenantOwns((int) $inspeccion->equipo->empresa_id);
-        }
+        TenantGuard::assertInspeccion($inspeccion);
         if (!$inspeccion->pdf_path || !SensitiveDocumentStorage::exists($inspeccion->pdf_path)) {
             return redirect()->route('inspeccion.edit', $inspeccion)->with('error', 'No hay PDF generado para esta inspección.');
         }
@@ -324,6 +326,7 @@ class InspeccionController extends Controller
     public function html(EquipoInspeccion $inspeccion)
     {
         $this->ensureCanViewInspeccion();
+        TenantGuard::assertInspeccion($inspeccion);
         $html = (string) $inspeccion->edited_html;
         $html = $this->convertStorageImagesForPdf($html);
 
@@ -341,6 +344,7 @@ class InspeccionController extends Controller
     public function darDeBaja(Request $request, Equipo $equipo)
     {
         $this->ensureCanEditInspeccion();
+        TenantGuard::assertEquipo($equipo);
         abort_unless($equipo->activo, 404);
         $url = route('equipos.bajas.form', $equipo);
         $inspeccionId = $request->query('inspeccion_id');

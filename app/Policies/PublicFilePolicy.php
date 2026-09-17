@@ -21,13 +21,19 @@ class PublicFilePolicy
             return false;
         }
 
-        if (
-            str_starts_with($relative, 'equipos/archivos/')
-            || str_starts_with($relative, 'inspeccion/')
-            || str_starts_with($relative, 'bajas/pdfs/')
-            || str_starts_with($relative, 'hoja_vida/pdf/')
-        ) {
-            return false;
+        /** @var list<string> $deniedPrefixes */
+        $deniedPrefixes = [
+            'equipos/archivos/',
+            'inspeccion/',
+            'bajas/',
+            'hoja_vida/',
+            'formatos/',
+        ];
+
+        foreach ($deniedPrefixes as $prefix) {
+            if (str_starts_with($relative, $prefix)) {
+                return false;
+            }
         }
 
         if (!$user->empresa_id) {

@@ -22,6 +22,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use App\Support\SensitiveDocumentStorage;
 use App\Support\UploadedFileStorage;
 use Illuminate\Support\Facades\Storage;
 
@@ -451,12 +452,23 @@ class EquipoInventarioController extends Controller
     public function downloadArchivo(EquipoArchivo $archivo)
     {
         $archivo->loadMissing('equipo');
-        if ($archivo->equipo) {
-            $this->authorize('view', $archivo->equipo);
+        if (!$archivo->equipo) {
+            abort(404);
+        }
+
+        $this->authorize('view', $archivo->equipo);
+
+        $path = str_replace('\\', '/', ltrim((string) $archivo->path, '/'));
+        if ($path === '' || str_contains($path, '..') || SensitiveDocumentStorage::isSensitivePath($path)) {
+            abort(404);
+        }
+
+        if (!Storage::disk('public')->exists($path)) {
+            abort(404);
         }
 
         return Storage::disk('public')->download(
-            $archivo->path,
+            $path,
             $archivo->original_name ?: $archivo->nombre,
             UploadedFileStorage::secureDownloadHeaders()
         );

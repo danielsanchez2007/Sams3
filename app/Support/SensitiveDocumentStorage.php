@@ -47,8 +47,40 @@ class SensitiveDocumentStorage
 
     public static function exists(string $path): bool
     {
-        return Storage::disk(self::DISK)->exists($path)
-            || Storage::disk('public')->exists($path);
+        if (Storage::disk(self::DISK)->exists($path)) {
+            return true;
+        }
+
+        if (Storage::disk('public')->exists($path) && self::isSensitivePath($path)) {
+            self::migrateLegacyFromPublic($path);
+
+            return Storage::disk(self::DISK)->exists($path);
+        }
+
+        return Storage::disk('public')->exists($path);
+    }
+
+    /**
+     * Mueve PDFs legacy desde public → private al primer acceso autenticado.
+     */
+    public static function migrateLegacyFromPublic(string $path): void
+    {
+        if (!self::isSensitivePath($path)) {
+            return;
+        }
+
+        if (!Storage::disk('public')->exists($path) || Storage::disk(self::DISK)->exists($path)) {
+            return;
+        }
+
+        try {
+            $contents = Storage::disk('public')->get($path);
+            if ($contents !== null && $contents !== '') {
+                self::put($path, $contents);
+            }
+        } catch (\Throwable $e) {
+            report($e);
+        }
     }
 
     public static function size(string $path): int

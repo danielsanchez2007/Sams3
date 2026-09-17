@@ -12,6 +12,7 @@ use App\Models\User;
 use App\Services\HojaVidaAutoFields;
 use App\Support\HtmlSanitizer;
 use App\Support\SensitiveDocumentStorage;
+use App\Support\TenantGuard;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -22,9 +23,7 @@ class ExportarController extends Controller
 {
     private function assertEquipoTenant(Equipo $equipo): void
     {
-        if ($equipo->empresa_id) {
-            $this->moduleAuthz()->assertTenantOwns((int) $equipo->empresa_id);
-        }
+        TenantGuard::assertEquipo($equipo);
     }
 
     public function index(Request $request)
