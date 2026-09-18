@@ -610,9 +610,9 @@ CSS;
         }
 
         $baja = EquipoBaja::query()->where('equipo_id', $equipo->id)->orderByDesc('id')->first();
-        if ($baja && $baja->plantilla_excel_path && Storage::disk('public')->exists($baja->plantilla_excel_path)) {
+        if ($baja && $baja->plantilla_excel_path && SensitiveDocumentStorage::exists($baja->plantilla_excel_path)) {
             try {
-                $templateHtml = $this->excelToHtml(Storage::disk('public')->path($baja->plantilla_excel_path));
+                $templateHtml = $this->excelToHtml(SensitiveDocumentStorage::path($baja->plantilla_excel_path));
                 $formData = $this->buildBajaFormData($baja, $equipo);
                 foreach ($formData as $key => $value) {
                     $token = '{{' . strtoupper((string) $key) . '}}';

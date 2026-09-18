@@ -6,20 +6,29 @@ use App\Models\ClaseEquipo;
 use App\Models\Equipo;
 use App\Models\EquipoBaja;
 use App\Models\EquipoInspeccion;
-use App\Services\EmpresaModuleAuthorization;
+use App\Services\EmpresaContext;
 
 /**
- * Verificación centralizada de aislamiento multi-tenant (anti-IDOR).
+ * Aislamiento multi-tenant alineado con EquipoPolicy (anti-IDOR).
  */
 final class TenantGuard
 {
     public static function assertOwns(?int $resourceEmpresaId): void
     {
+        abort_unless(auth()->check(), 403);
+
+        $activa = EmpresaContext::resolveId();
+        if (!$activa) {
+            abort(403, 'Debes seleccionar una empresa activa.');
+        }
+
         if ($resourceEmpresaId === null) {
             return;
         }
 
-        (new EmpresaModuleAuthorization())->assertTenantOwns((int) $resourceEmpresaId);
+        if ((int) $activa !== (int) $resourceEmpresaId) {
+            abort(403, 'No tienes permiso para acceder a recursos de otra empresa.');
+        }
     }
 
     public static function assertEquipo(Equipo $equipo): void

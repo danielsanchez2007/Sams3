@@ -13,6 +13,8 @@ class DeployEnvironment
     {
         self::forgetViteHotFile();
         self::ensureStorageLink();
+        self::disablePublicStorageLink();
+        self::ensurePublicDocumentDeny();
         self::ensurePrivateDocumentDirs();
         self::alignPublicUrls();
     }
@@ -31,23 +33,57 @@ class DeployEnvironment
 
     public static function ensureStorageLink(): void
     {
-        $link = public_path('storage');
-        $target = storage_path('app/public');
+        File::ensureDirectoryExists(storage_path('app/public'));
+    }
 
-        if (file_exists($link) || is_link($link) || is_dir($link)) {
+    /**
+     * Quita el enlace public/storage si es un junction/symlink, para que /storage/*
+     * pase por PublicStorageController (sesión requerida).
+     */
+    public static function disablePublicStorageLink(): void
+    {
+        if (app()->environment('testing')) {
             return;
         }
 
-        File::ensureDirectoryExists($target);
+        $link = public_path('storage');
+        if (!file_exists($link) && !is_link($link)) {
+            return;
+        }
 
         try {
             if (PHP_OS_FAMILY === 'Windows') {
-                @exec('cmd /c mklink /J '.escapeshellarg($link).' '.escapeshellarg($target).' >NUL 2>&1');
-            } else {
-                @symlink($target, $link);
+                if (is_dir($link)) {
+                    @exec('cmd /c rmdir '.escapeshellarg($link).' >NUL 2>&1');
+                }
+            } elseif (is_link($link)) {
+                @unlink($link);
             }
         } catch (Throwable) {
-            // El fallback HTTP está en PublicStorageController.
+            // Si no se puede quitar, los documentos ya no viven en disco public.
+        }
+    }
+
+    public static function ensurePublicDocumentDeny(): void
+    {
+        $htaccess = storage_path('app/public/.htaccess');
+        $contents = <<<'HTACCESS'
+<FilesMatch "(?i)\.(pdf|xlsx|xls|docx|html)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Deny from all
+    </IfModule>
+</FilesMatch>
+HTACCESS;
+
+        try {
+            if (!is_file($htaccess) || trim((string) file_get_contents($htaccess)) !== trim($contents)) {
+                File::put($htaccess, $contents);
+            }
+        } catch (Throwable) {
+            // ignore
         }
     }
 

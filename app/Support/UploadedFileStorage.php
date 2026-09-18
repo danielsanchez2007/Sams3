@@ -57,22 +57,18 @@ class UploadedFileStorage
         $filename = Str::random(40) . '.' . $extension;
         $path = rtrim($directory, '/') . '/' . $filename;
 
-        Storage::disk('public')->put($path, $contenido);
+        if (SensitiveDocumentStorage::isSensitivePath($path)) {
+            SensitiveDocumentStorage::put($path, $contenido);
+        } else {
+            Storage::disk('public')->put($path, $contenido);
+        }
 
         return $path;
     }
 
     public static function deletePublic(?string $path): void
     {
-        if (!$path) {
-            return;
-        }
-
-        try {
-            Storage::disk('public')->delete($path);
-        } catch (\Throwable $e) {
-            report($e);
-        }
+        SensitiveDocumentStorage::delete($path);
     }
 
     public static function storePublicImage(UploadedFile $file, string $directory): string

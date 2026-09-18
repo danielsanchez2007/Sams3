@@ -55,9 +55,9 @@ class GenerateHojaVidaPdfCommand extends Command
                 }
             }
 
-            if ($doc->excel_path && Storage::disk('public')->exists($doc->excel_path)) {
+            if ($doc->excel_path && SensitiveDocumentStorage::exists($doc->excel_path)) {
                 try {
-                    $spreadsheet = IOFactory::load(Storage::disk('public')->path($doc->excel_path));
+                    $spreadsheet = IOFactory::load(SensitiveDocumentStorage::path($doc->excel_path));
 
                     $sheet = $spreadsheet->getSheet(0);
                     $dim = $sheet->calculateWorksheetDimension();
@@ -73,7 +73,7 @@ class GenerateHojaVidaPdfCommand extends Command
                     $sheet->getPageSetup()->setHorizontalCentered(true);
 
                     // Preferred: Excel -> HTML (inline CSS) -> DomPDF (keeps colors/layout closer to editor preview)
-                    $html = $this->excelToHtml(Storage::disk('public')->path($doc->excel_path));
+                    $html = $this->excelToHtml(SensitiveDocumentStorage::path($doc->excel_path));
 
                     $imagenes = EquipoImagen::query()
                         ->where('equipo_id', $equipo->id)
@@ -144,8 +144,8 @@ class GenerateHojaVidaPdfCommand extends Command
 
             $html = (string) $doc->edited_html;
 
-            if (strlen(trim(strip_tags($html))) === 0 && $doc->excel_path && Storage::disk('public')->exists($doc->excel_path)) {
-                $html = $this->excelToHtml(Storage::disk('public')->path($doc->excel_path));
+            if (strlen(trim(strip_tags($html))) === 0 && $doc->excel_path && SensitiveDocumentStorage::exists($doc->excel_path)) {
+                $html = $this->excelToHtml(SensitiveDocumentStorage::path($doc->excel_path));
             }
 
             $selectedIds = array_values(array_filter(array_map('intval', (array) ($doc->selected_equipo_imagen_ids ?? []))));
@@ -173,8 +173,7 @@ class GenerateHojaVidaPdfCommand extends Command
             $imgCount = preg_match_all('/<img\b/i', $html) ?: 0;
             if ($textLen === 0 && $imgCount === 0) {
                 $debugHtml = 'hoja_vida/pdf_debug/' . $equipo->id . '-' . now()->format('YmdHis') . '.html';
-                Storage::disk('public')->makeDirectory('hoja_vida/pdf_debug');
-                Storage::disk('public')->put($debugHtml, $this->wrapHtmlForPdf($html));
+                SensitiveDocumentStorage::put($debugHtml, $this->wrapHtmlForPdf($html));
                 $this->error('HTML vacío tras sanitizar. Debug: storage/' . $debugHtml);
                 return self::FAILURE;
             }
@@ -189,8 +188,7 @@ class GenerateHojaVidaPdfCommand extends Command
             $out = $pdf->output();
             if (!is_string($out) || strlen($out) < 20000) {
                 $debugHtml = 'hoja_vida/pdf_debug/' . $equipo->id . '-' . now()->format('YmdHis') . '.html';
-                Storage::disk('public')->makeDirectory('hoja_vida/pdf_debug');
-                Storage::disk('public')->put($debugHtml, $wrapped);
+                SensitiveDocumentStorage::put($debugHtml, $wrapped);
                 $this->error('PDF vacío. Debug: storage/' . $debugHtml);
                 return self::FAILURE;
             }

@@ -13,6 +13,9 @@ use App\Support\SensitiveDocumentStorage;
  */
 class PublicFilePolicy
 {
+    /** @var list<string> */
+    private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+
     public static function allows(string $relative, User $user): bool
     {
         $relative = str_replace('\\', '/', ltrim($relative, '/'));
@@ -21,28 +24,28 @@ class PublicFilePolicy
             return false;
         }
 
-        /** @var list<string> $deniedPrefixes */
-        $deniedPrefixes = [
-            'equipos/archivos/',
-            'inspeccion/',
-            'bajas/',
-            'hoja_vida/',
-            'formatos/',
-        ];
+        if (!self::isPublicImage($relative)) {
+            return false;
+        }
 
-        foreach ($deniedPrefixes as $prefix) {
-            if (str_starts_with($relative, $prefix)) {
-                return false;
-            }
+        $empresaId = (int) (EmpresaContext::empresaId() ?: $user->empresa_id ?: 0);
+
+        if ($empresaId > 0) {
+            return self::allowsTenantPath($relative, $empresaId, $user);
         }
 
         if (!$user->empresa_id) {
             return self::allowsGlobalAdmin($relative);
         }
 
-        $empresaId = (int) (EmpresaContext::empresaId() ?: $user->empresa_id);
+        return false;
+    }
 
-        return self::allowsTenantPath($relative, $empresaId, $user);
+    private static function isPublicImage(string $relative): bool
+    {
+        $ext = strtolower((string) pathinfo($relative, PATHINFO_EXTENSION));
+
+        return in_array($ext, self::IMAGE_EXTENSIONS, true);
     }
 
     private static function allowsGlobalAdmin(string $relative): bool
@@ -76,6 +79,12 @@ class PublicFilePolicy
             ->first();
 
         if ($ownerUser) {
+            $isSignature = (string) $ownerUser->signature === $relative;
+            if ($isSignature) {
+                return (int) $ownerUser->id === (int) $user->id
+                    || (int) $ownerUser->empresa_id === $empresaId;
+            }
+
             return (int) $ownerUser->id === (int) $user->id
                 || (int) $ownerUser->empresa_id === $empresaId;
         }

@@ -62,7 +62,7 @@ class HojaVidaController extends Controller
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         $plantilla = HojaVidaPlantilla::query()->where('clase_equipo_id', $clase->id)->first();
-        if (!$plantilla || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
+        if (!$plantilla || !SensitiveDocumentStorage::exists($plantilla->plantilla_excel_path)) {
             return redirect()->route('hoja-vida.clase', $clase)->with('error', '⚠️ Esa clase de equipo no tiene plantilla válida.');
         }
 
@@ -87,7 +87,7 @@ class HojaVidaController extends Controller
 
             $excelPath = $this->generateExcelFromTemplateWithImages(
                 $equipo->id,
-                Storage::disk('public')->path($plantilla->plantilla_excel_path),
+                SensitiveDocumentStorage::path($plantilla->plantilla_excel_path),
                 $auto,
                 $imagenes,
                 $user
@@ -196,11 +196,11 @@ class HojaVidaController extends Controller
         }
 
         $filename = 'hoja_vida/excel/' . $equipoId . '-' . now()->format('YmdHis') . '.xlsx';
-        $absolutePath = Storage::disk('public')->path($filename);
-        Storage::disk('public')->makeDirectory('hoja_vida/excel');
+        $absolutePath = SensitiveDocumentStorage::writePath($filename);
 
         $writer = new Xlsx($spreadsheet);
         $writer->save($absolutePath);
+        SensitiveDocumentStorage::migrateLegacyFromPublic($filename);
 
         return $filename;
     }
@@ -262,13 +262,13 @@ class HojaVidaController extends Controller
                 'equipo_id' => (int) $equipo->id,
                 'doc_id' => (int) $doc->id,
                 'excel_path' => (string) ($doc->excel_path ?? ''),
-                'excel_exists' => (bool) ($doc->excel_path ? Storage::disk('public')->exists($doc->excel_path) : false),
+                'excel_exists' => (bool) ($doc->excel_path ? SensitiveDocumentStorage::exists($doc->excel_path) : false),
             ]);
         }
 
-        if ((string) request()->query('excelpdf') === '1' && $doc->excel_path && Storage::disk('public')->exists($doc->excel_path)) {
+        if ((string) request()->query('excelpdf') === '1' && $doc->excel_path && SensitiveDocumentStorage::exists($doc->excel_path)) {
             try {
-                $spreadsheet = IOFactory::load(Storage::disk('public')->path($doc->excel_path));
+                $spreadsheet = IOFactory::load(SensitiveDocumentStorage::path($doc->excel_path));
 
                 $writer = new SpreadsheetPdfDompdf($spreadsheet);
                 $writer->setSheetIndex(0);
@@ -311,8 +311,8 @@ class HojaVidaController extends Controller
         $stats['raw_len'] = strlen($html);
         $stats['raw_text_len'] = strlen(trim(strip_tags($html)));
 
-        if ($stats['raw_text_len'] === 0 && $doc->excel_path && Storage::disk('public')->exists($doc->excel_path)) {
-            $html = $this->excelToHtml(Storage::disk('public')->path($doc->excel_path));
+        if ($stats['raw_text_len'] === 0 && $doc->excel_path && SensitiveDocumentStorage::exists($doc->excel_path)) {
+            $html = $this->excelToHtml(SensitiveDocumentStorage::path($doc->excel_path));
             $stats['used_excel_fallback_initial'] = true;
         }
 
@@ -339,8 +339,8 @@ class HojaVidaController extends Controller
         $stats['after_convert_len'] = strlen($html);
         $stats['after_convert_text_len'] = strlen(trim(strip_tags($html)));
 
-        if ($stats['after_convert_text_len'] === 0 && $doc->excel_path && Storage::disk('public')->exists($doc->excel_path)) {
-            $fallbackHtml = $this->excelToHtml(Storage::disk('public')->path($doc->excel_path));
+        if ($stats['after_convert_text_len'] === 0 && $doc->excel_path && SensitiveDocumentStorage::exists($doc->excel_path)) {
+            $fallbackHtml = $this->excelToHtml(SensitiveDocumentStorage::path($doc->excel_path));
             $fallbackHtml = $this->applyPdfMediaTokens($fallbackHtml, $imagenes, $user);
             $fallbackHtml = $this->convertStorageImagesForPdf($fallbackHtml);
             if (strlen(trim(strip_tags($fallbackHtml))) !== 0) {
@@ -412,8 +412,8 @@ class HojaVidaController extends Controller
         }
 
         $html = (string) $doc->edited_html;
-        if (trim(strip_tags($html)) === '' && $doc->excel_path && Storage::disk('public')->exists($doc->excel_path)) {
-            $html = $this->excelToHtml(Storage::disk('public')->path($doc->excel_path));
+        if (trim(strip_tags($html)) === '' && $doc->excel_path && SensitiveDocumentStorage::exists($doc->excel_path)) {
+            $html = $this->excelToHtml(SensitiveDocumentStorage::path($doc->excel_path));
         }
 
         $imagenes = [];
@@ -738,13 +738,13 @@ class HojaVidaController extends Controller
         abort_unless((int) $equipo->clase_equipo_id === (int) $clase->id, 404);
 
         $doc = HojaVidaDocumento::query()->where('equipo_id', $equipo->id)->first();
-        if (!$doc || !$doc->excel_path || !Storage::disk('public')->exists($doc->excel_path)) {
+        if (!$doc || !$doc->excel_path || !SensitiveDocumentStorage::exists($doc->excel_path)) {
             return redirect()->route('hoja-vida.form', [$clase, $equipo])->with('error', '⚠️ Primero debes guardar la hoja de vida.');
         }
 
         $filename = 'hoja-vida-' . ($equipo->codigo ?: $equipo->id) . '.xlsx';
 
-        return Storage::disk('public')->download($doc->excel_path, $filename);
+        return SensitiveDocumentStorage::download($doc->excel_path, $filename);
     }
 
     private function excelToHtml(string $absolutePath): string
@@ -971,10 +971,9 @@ class HojaVidaController extends Controller
         $writer = new Xlsx($spreadsheet);
 
         $filename = 'hoja_vida/excel/' . $equipoId . '-' . now()->format('YmdHis') . '.xlsx';
-        $absolutePath = Storage::disk('public')->path($filename);
-
-        Storage::disk('public')->makeDirectory('hoja_vida/excel');
+        $absolutePath = SensitiveDocumentStorage::writePath($filename);
         $writer->save($absolutePath);
+        SensitiveDocumentStorage::migrateLegacyFromPublic($filename);
 
         return $filename;
     }
@@ -1014,11 +1013,11 @@ class HojaVidaController extends Controller
         }
 
         $filename = 'hoja_vida/excel/' . $equipoId . '-' . now()->format('YmdHis') . '.xlsx';
-        $absolutePath = Storage::disk('public')->path($filename);
+        $absolutePath = SensitiveDocumentStorage::writePath($filename);
 
-        Storage::disk('public')->makeDirectory('hoja_vida/excel');
         $writer = new Xlsx($template);
         $writer->save($absolutePath);
+        SensitiveDocumentStorage::migrateLegacyFromPublic($filename);
 
         return $filename;
     }
@@ -1056,11 +1055,11 @@ class HojaVidaController extends Controller
         }
 
         $filename = 'hoja_vida/excel/' . $equipoId . '-' . now()->format('YmdHis') . '.xlsx';
-        $absolutePath = Storage::disk('public')->path($filename);
+        $absolutePath = SensitiveDocumentStorage::writePath($filename);
 
-        Storage::disk('public')->makeDirectory('hoja_vida/excel');
         $writer = new Xlsx($spreadsheet);
         $writer->save($absolutePath);
+        SensitiveDocumentStorage::migrateLegacyFromPublic($filename);
 
         return $filename;
     }

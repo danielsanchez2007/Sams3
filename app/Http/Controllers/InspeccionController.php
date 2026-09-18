@@ -88,8 +88,8 @@ class InspeccionController extends Controller
 
         if ($plantilla->plantilla_excel_path
             && $plantilla->plantilla_excel_path !== $path
-            && Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
-            Storage::disk('public')->delete($plantilla->plantilla_excel_path);
+            && SensitiveDocumentStorage::exists($plantilla->plantilla_excel_path)) {
+            SensitiveDocumentStorage::delete($plantilla->plantilla_excel_path);
         }
 
         $plantilla->fill([
@@ -109,7 +109,7 @@ class InspeccionController extends Controller
             abort(403);
         }
         $plantilla = InspeccionPlantilla::query()->where('clase_equipo_id', $clase->id)->first();
-        if (!$plantilla || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
+        if (!$plantilla || !SensitiveDocumentStorage::exists($plantilla->plantilla_excel_path)) {
             return redirect()->route('inspeccion.index')->with('error', 'Esta clase de equipo no tiene formato de inspección asignado.');
         }
 
@@ -152,7 +152,7 @@ class InspeccionController extends Controller
         $equipo->loadMissing(['imagenes', 'empresa', 'sede', 'bodega', 'tipoEquipo', 'claseEquipo']);
 
         $plantilla = InspeccionPlantilla::query()->where('clase_equipo_id', $equipo->clase_equipo_id)->first();
-        if (!$plantilla || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
+        if (!$plantilla || !SensitiveDocumentStorage::exists($plantilla->plantilla_excel_path)) {
             return redirect()->route('inspeccion.equipos', $equipo->claseEquipo)->with('error', 'No hay formato de inspección para esta clase de equipo.');
         }
 
@@ -162,7 +162,7 @@ class InspeccionController extends Controller
         $requiereObligatoria = $ultima && $ultima->validez_hasta && $ultima->validez_hasta->gte($hoy);
 
         $fechaHoy = now()->format('Y-m-d');
-        $templateHtml = $this->excelToHtml(Storage::disk('public')->path($plantilla->plantilla_excel_path));
+        $templateHtml = $this->excelToHtml(SensitiveDocumentStorage::path($plantilla->plantilla_excel_path));
         $defaults = $this->buildAutoFields($equipo);
         $defaults['FECHA_HOY'] = $fechaHoy;
         $defaults['FECHA_INSPECCION'] = $fechaHoy;
@@ -197,7 +197,7 @@ class InspeccionController extends Controller
         abort_unless($equipo->activo, 404);
 
         $plantilla = InspeccionPlantilla::query()->where('clase_equipo_id', $equipo->clase_equipo_id)->first();
-        if (!$plantilla || !Storage::disk('public')->exists($plantilla->plantilla_excel_path)) {
+        if (!$plantilla || !SensitiveDocumentStorage::exists($plantilla->plantilla_excel_path)) {
             return redirect()->route('inspeccion.equipos', $equipo->claseEquipo)->with('error', 'No hay formato de inspección para esta clase de equipo.');
         }
 

@@ -6,7 +6,7 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * PDFs sensibles (inspección, bajas, hoja de vida) en disco private — no expuestos vía storage:link.
+ * Documentos sensibles en disco private — no expuestos vía storage:link.
  */
 class SensitiveDocumentStorage
 {
@@ -14,14 +14,16 @@ class SensitiveDocumentStorage
 
     /** @var list<string> */
     public const SENSITIVE_PREFIXES = [
-        'inspeccion/pdf/',
-        'bajas/pdfs/',
-        'hoja_vida/pdf/',
+        'inspeccion/',
+        'bajas/',
+        'hoja_vida/',
+        'formatos/',
+        'equipos/archivos/',
     ];
 
     public static function isSensitivePath(string $path): bool
     {
-        $normalized = str_replace('\\', '/', ltrim($path, '/'));
+        $normalized = self::normalize($path);
 
         foreach (self::SENSITIVE_PREFIXES as $prefix) {
             if (str_starts_with($normalized, $prefix)) {
@@ -42,26 +44,17 @@ class SensitiveDocumentStorage
             return 'public';
         }
 
-        return self::DISK;
+        return self::isSensitivePath($path) ? self::DISK : 'public';
     }
 
     public static function exists(string $path): bool
     {
-        if (Storage::disk(self::DISK)->exists($path)) {
-            return true;
-        }
-
-        if (Storage::disk('public')->exists($path) && self::isSensitivePath($path)) {
-            self::migrateLegacyFromPublic($path);
-
-            return Storage::disk(self::DISK)->exists($path);
-        }
-
-        return Storage::disk('public')->exists($path);
+        return Storage::disk(self::DISK)->exists($path)
+            || Storage::disk('public')->exists($path);
     }
 
     /**
-     * Mueve PDFs legacy desde public → private al primer acceso autenticado.
+     * Copia un archivo legacy public → private solo si el destino queda completo.
      */
     public static function migrateLegacyFromPublic(string $path): void
     {
@@ -69,14 +62,32 @@ class SensitiveDocumentStorage
             return;
         }
 
-        if (!Storage::disk('public')->exists($path) || Storage::disk(self::DISK)->exists($path)) {
+        if (!Storage::disk('public')->exists($path)) {
+            return;
+        }
+
+        if (Storage::disk(self::DISK)->exists($path)) {
+            try {
+                Storage::disk('public')->delete($path);
+            } catch (\Throwable $e) {
+                report($e);
+            }
+
             return;
         }
 
         try {
             $contents = Storage::disk('public')->get($path);
-            if ($contents !== null && $contents !== '') {
-                self::put($path, $contents);
+            if ($contents === null || $contents === '') {
+                return;
+            }
+
+            $publicSize = (int) (Storage::disk('public')->size($path) ?? 0);
+            self::putWithoutDeletingPublic($path, $contents);
+            $privateSize = (int) (Storage::disk(self::DISK)->size($path) ?? 0);
+
+            if ($privateSize > 0 && ($publicSize === 0 || $privateSize === $publicSize)) {
+                Storage::disk('public')->delete($path);
             }
         } catch (\Throwable $e) {
             report($e);
@@ -92,7 +103,21 @@ class SensitiveDocumentStorage
 
     public static function path(string $path): string
     {
+        if (self::isSensitivePath($path)) {
+            self::migrateLegacyFromPublic($path);
+        }
+
         return Storage::disk(self::diskFor($path))->path($path);
+    }
+
+    public static function writePath(string $path): string
+    {
+        $directory = dirname($path);
+        if ($directory !== '.' && $directory !== '') {
+            self::makeDirectory($directory);
+        }
+
+        return Storage::disk(self::DISK)->path($path);
     }
 
     public static function makeDirectory(string $directory): void
@@ -102,16 +127,27 @@ class SensitiveDocumentStorage
 
     public static function put(string $path, string $contents): void
     {
-        $directory = dirname($path);
-        if ($directory !== '.' && $directory !== '') {
-            self::makeDirectory($directory);
-        }
-
-        Storage::disk(self::DISK)->put($path, $contents);
+        self::putWithoutDeletingPublic($path, $contents);
 
         if (Storage::disk('public')->exists($path)) {
             Storage::disk('public')->delete($path);
         }
+    }
+
+    public static function get(string $path): ?string
+    {
+        if (self::isSensitivePath($path)) {
+            self::migrateLegacyFromPublic($path);
+        }
+
+        $disk = self::diskFor($path);
+        if (!Storage::disk($disk)->exists($path)) {
+            return null;
+        }
+
+        $contents = Storage::disk($disk)->get($path);
+
+        return $contents === false ? null : $contents;
     }
 
     public static function delete(?string $path): void
@@ -150,6 +186,10 @@ class SensitiveDocumentStorage
 
     public static function download(string $path, string $downloadName): StreamedResponse
     {
+        if (self::isSensitivePath($path)) {
+            self::migrateLegacyFromPublic($path);
+        }
+
         $disk = self::diskFor($path);
 
         return Storage::disk($disk)->download($path, $downloadName, self::secureHeaders(true));
@@ -160,11 +200,30 @@ class SensitiveDocumentStorage
      */
     public static function inlineFileResponse(string $path, array $extra = [])
     {
+        if (self::isSensitivePath($path)) {
+            self::migrateLegacyFromPublic($path);
+        }
+
         $disk = self::diskFor($path);
         $headers = array_merge([
             'Content-Type' => 'application/pdf',
         ], self::secureHeaders(false), $extra);
 
         return response()->file(Storage::disk($disk)->path($path), $headers);
+    }
+
+    private static function putWithoutDeletingPublic(string $path, string $contents): void
+    {
+        $directory = dirname($path);
+        if ($directory !== '.' && $directory !== '') {
+            self::makeDirectory($directory);
+        }
+
+        Storage::disk(self::DISK)->put($path, $contents);
+    }
+
+    private static function normalize(string $path): string
+    {
+        return str_replace('\\', '/', ltrim($path, '/'));
     }
 }

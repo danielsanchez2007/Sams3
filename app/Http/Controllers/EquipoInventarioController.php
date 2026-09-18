@@ -459,18 +459,17 @@ class EquipoInventarioController extends Controller
         $this->authorize('view', $archivo->equipo);
 
         $path = str_replace('\\', '/', ltrim((string) $archivo->path, '/'));
-        if ($path === '' || str_contains($path, '..') || SensitiveDocumentStorage::isSensitivePath($path)) {
+        if ($path === '' || str_contains($path, '..')) {
             abort(404);
         }
 
-        if (!Storage::disk('public')->exists($path)) {
+        if (!SensitiveDocumentStorage::exists($path)) {
             abort(404);
         }
 
-        return Storage::disk('public')->download(
+        return SensitiveDocumentStorage::download(
             $path,
-            $archivo->original_name ?: $archivo->nombre,
-            UploadedFileStorage::secureDownloadHeaders()
+            $archivo->original_name ?: $archivo->nombre
         );
     }
 
@@ -483,10 +482,7 @@ class EquipoInventarioController extends Controller
         }
 
         if ($archivo->path) {
-            try {
-                Storage::disk('public')->delete($archivo->path);
-            } catch (\Throwable $e) {
-            }
+            SensitiveDocumentStorage::delete($archivo->path);
         }
 
         $archivo->delete();
@@ -548,10 +544,7 @@ class EquipoInventarioController extends Controller
 
             foreach ($equipo->archivos as $archivo) {
                 if ($archivo->path) {
-                    try {
-                        Storage::disk('public')->delete($archivo->path);
-                    } catch (\Throwable $e) {
-                    }
+                    SensitiveDocumentStorage::delete($archivo->path);
                 }
                 $archivo->delete();
             }

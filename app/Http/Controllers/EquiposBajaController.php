@@ -79,7 +79,7 @@ class EquiposBajaController extends Controller
             ->withQueryString();
 
         $plantillaHtmlPath = AppSetting::getValue($this->plantillaHtmlKey());
-        $tieneFormatoHtml = $plantillaHtmlPath && Storage::disk('public')->exists($plantillaHtmlPath);
+        $tieneFormatoHtml = $plantillaHtmlPath && SensitiveDocumentStorage::exists($plantillaHtmlPath);
         $zipDisponible = $this->soportaLecturaExcel();
 
         return view('admin.equipos.bajas.index', compact('plantillaExcelPath', 'plantillaHtmlPath', 'tieneFormatoHtml', 'equiposJs', 'bajas', 'equiposEliminarJs', 'zipDisponible'));
@@ -126,7 +126,7 @@ class EquiposBajaController extends Controller
         $this->authorize('viewBajas', Equipo::class);
 
         $plantillaExcelPath = AppSetting::getValue($this->plantillaExcelKey());
-        if (!$plantillaExcelPath || !Storage::disk('public')->exists($plantillaExcelPath)) {
+        if (!$plantillaExcelPath || !SensitiveDocumentStorage::exists($plantillaExcelPath)) {
             return redirect()->route('equipos.bajas.index')->with('error', 'No hay plantilla Excel cargada.');
         }
 
@@ -135,7 +135,7 @@ class EquiposBajaController extends Controller
                 ->with('error', 'PHP no tiene habilitada la extensión ZIP, necesaria para leer archivos Excel. Active extension=zip en php.ini y reinicie el servidor.');
         }
 
-        $htmlPath = $this->cachePlantillaHtmlSimple(Storage::disk('public')->path($plantillaExcelPath));
+        $htmlPath = $this->cachePlantillaHtmlSimple(SensitiveDocumentStorage::path($plantillaExcelPath));
         if ($htmlPath) {
             AppSetting::setValue($this->plantillaHtmlKey(), $htmlPath);
             return redirect()->route('equipos.bajas.index')->with('success', 'Formato actualizado.');
@@ -151,7 +151,7 @@ class EquiposBajaController extends Controller
 
         $plantillaExcelPath = AppSetting::getValue($this->plantillaExcelKey());
         $tienePlantillaExcel = $plantillaExcelPath
-            && Storage::disk('public')->exists($plantillaExcelPath)
+            && SensitiveDocumentStorage::exists($plantillaExcelPath)
             && $this->soportaLecturaExcel();
 
         $inspeccionId = $request->query('inspeccion_id');
@@ -174,7 +174,7 @@ class EquiposBajaController extends Controller
         );
 
         if ($tienePlantillaExcel) {
-            $templateHtml = $this->getPlantillaHtml(Storage::disk('public')->path($plantillaExcelPath));
+            $templateHtml = $this->getPlantillaHtml(SensitiveDocumentStorage::path($plantillaExcelPath));
             $renderedHtml = $this->replaceTokens($templateHtml, $defaults);
             $renderedHtml = $this->blankRemainingTokens($renderedHtml);
         } else {
@@ -226,7 +226,7 @@ class EquiposBajaController extends Controller
 
         $plantillaExcelPath = $baja->plantilla_excel_path ?: AppSetting::getValue($this->plantillaExcelKey());
         $tienePlantillaExcel = $plantillaExcelPath
-            && Storage::disk('public')->exists($plantillaExcelPath)
+            && SensitiveDocumentStorage::exists($plantillaExcelPath)
             && $this->soportaLecturaExcel();
 
         $defaults = array_merge(
@@ -243,7 +243,7 @@ class EquiposBajaController extends Controller
         if ($savedHtml !== '') {
             $renderedHtml = $this->replaceTokens($savedHtml, $defaults);
         } elseif ($tienePlantillaExcel) {
-            $templateHtml = $this->getPlantillaHtml(Storage::disk('public')->path($plantillaExcelPath));
+            $templateHtml = $this->getPlantillaHtml(SensitiveDocumentStorage::path($plantillaExcelPath));
             $renderedHtml = $this->replaceTokens($templateHtml, $defaults);
             $renderedHtml = $this->blankRemainingTokens($renderedHtml);
         } else {
@@ -289,7 +289,7 @@ class EquiposBajaController extends Controller
         abort_unless($equipo->activo, 404);
         $plantillaExcelPath = AppSetting::getValue($this->plantillaExcelKey());
         $tienePlantillaExcel = $plantillaExcelPath
-            && Storage::disk('public')->exists($plantillaExcelPath)
+            && SensitiveDocumentStorage::exists($plantillaExcelPath)
             && $this->soportaLecturaExcel();
 
         $inspeccionId = $request->input('inspeccion_id');
@@ -313,7 +313,7 @@ class EquiposBajaController extends Controller
                 $finalHtml = $this->replaceTokens($finalHtml, $merged);
                 $finalHtml = $this->blankRemainingTokens($finalHtml);
             } elseif ($tienePlantillaExcel) {
-                $templateHtml = $this->getPlantillaHtml(Storage::disk('public')->path($plantillaExcelPath));
+                $templateHtml = $this->getPlantillaHtml(SensitiveDocumentStorage::path($plantillaExcelPath));
                 $finalHtml = $this->blankRemainingTokens($this->replaceTokens($templateHtml, $merged));
             }
 
@@ -497,7 +497,7 @@ class EquiposBajaController extends Controller
         $tieneExcel = ($savedHtml !== '')
             || (
                 $plantillaExcelPath
-                && Storage::disk('public')->exists($plantillaExcelPath)
+                && SensitiveDocumentStorage::exists($plantillaExcelPath)
                 && $this->soportaLecturaExcel()
             );
 
@@ -530,7 +530,7 @@ class EquiposBajaController extends Controller
         $savedHtml = (string) data_get($baja->form_data, 'edited_html', '');
         $plantillaExcelPath = $baja->plantilla_excel_path ?: AppSetting::getValue($this->plantillaExcelKey());
         $tieneExcel = $plantillaExcelPath
-            && Storage::disk('public')->exists($plantillaExcelPath)
+            && SensitiveDocumentStorage::exists($plantillaExcelPath)
             && $this->soportaLecturaExcel();
 
         // Si ya hay PDF y no se fuerza regeneración Excel, reutilizar.
@@ -565,7 +565,7 @@ class EquiposBajaController extends Controller
                 $html = $this->blankRemainingTokens($this->replaceTokens($savedHtml, $merged));
                 $newPath = $this->generatePdf($codigoDb, $html);
             } elseif ($tieneExcel) {
-                $templateHtml = $this->getPlantillaHtml(Storage::disk('public')->path($plantillaExcelPath));
+                $templateHtml = $this->getPlantillaHtml(SensitiveDocumentStorage::path($plantillaExcelPath));
                 $html = $this->blankRemainingTokens($this->replaceTokens($templateHtml, $merged));
                 $newPath = $this->generatePdf($codigoDb, $html);
             } else {
@@ -631,18 +631,18 @@ class EquiposBajaController extends Controller
                 $result = $this->extractBodyAndStyles($html);
                 unset($html);
                 $filename = 'bajas/plantillas/plantilla-' . now()->format('YmdHis') . '.html';
-                Storage::disk('public')->put($filename, $result);
+                SensitiveDocumentStorage::put($filename, $result);
             return $filename;
             }
             $html = $this->excelToHtmlSimple($absolutePath);
             $filename = 'bajas/plantillas/plantilla-' . now()->format('YmdHis') . '.html';
-            Storage::disk('public')->put($filename, $html);
+            SensitiveDocumentStorage::put($filename, $html);
             return $filename;
         } catch (\Throwable $e) {
             try {
                 $html = $this->excelToHtmlSimple($absolutePath);
                 $filename = 'bajas/plantillas/plantilla-' . now()->format('YmdHis') . '.html';
-                Storage::disk('public')->put($filename, $html);
+                SensitiveDocumentStorage::put($filename, $html);
                 return $filename;
             } catch (\Throwable $e2) {
                 return null;
@@ -657,10 +657,10 @@ class EquiposBajaController extends Controller
     {
         $maxCacheSize = 2 * 1024 * 1024;
         $htmlPath = AppSetting::getValue($this->plantillaHtmlKey());
-        if ($htmlPath && Storage::disk('public')->exists($htmlPath)) {
-            $fullPath = Storage::disk('public')->path($htmlPath);
+        if ($htmlPath && SensitiveDocumentStorage::exists($htmlPath)) {
+            $fullPath = SensitiveDocumentStorage::path($htmlPath);
             if (filesize($fullPath) < $maxCacheSize) {
-                $html = Storage::disk('public')->get($htmlPath);
+                $html = SensitiveDocumentStorage::get($htmlPath);
                 if ($html !== false && $html !== '') {
                     return (string) $html;
                 }
@@ -673,7 +673,7 @@ class EquiposBajaController extends Controller
         if ($fullHtml !== null && strlen($fullHtml) > 0 && strlen($fullHtml) < $maxCacheSize) {
             $result = $this->extractBodyAndStyles($fullHtml);
             $filename = 'bajas/plantillas/plantilla-' . now()->format('YmdHis') . '.html';
-            Storage::disk('public')->put($filename, $result);
+            SensitiveDocumentStorage::put($filename, $result);
             AppSetting::setValue($this->plantillaHtmlKey(), $filename);
             return $result;
         }

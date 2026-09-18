@@ -681,6 +681,7 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        $this->authorize('view', $user);
         $this->assertUserInCurrentEmpresa($user);
         return redirect()->route('users.complete');
     }
