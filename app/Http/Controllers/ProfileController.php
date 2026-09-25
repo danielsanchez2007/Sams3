@@ -2,9 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Support\SensitiveDocumentStorage;
 use App\Support\UploadedFileStorage;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password;
 
 class ProfileController extends Controller
@@ -18,6 +19,23 @@ class ProfileController extends Controller
         $user->load(['role', 'cargo', 'grupo']);
 
         return view('admin.profile.show', compact('user'));
+    }
+
+    public function avatar()
+    {
+        $user = auth()->user();
+        abort_unless($user && $user->hasDisplayPhoto(), 404);
+
+        $path = (string) $user->photo;
+        SensitiveDocumentStorage::migrateLegacyFromPublic($path);
+        abort_unless(SensitiveDocumentStorage::exists($path), 404);
+
+        $disk = SensitiveDocumentStorage::diskFor($path);
+
+        return \Illuminate\Support\Facades\Storage::disk($disk)->response($path, null, [
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store, max-age=0',
+        ]);
     }
 
     /**
@@ -78,7 +96,7 @@ class ProfileController extends Controller
         if ($request->hasFile('photo')) {
             try {
                 if ($user->photo) {
-                    Storage::disk('public')->delete($user->photo);
+                    SensitiveDocumentStorage::delete($user->photo);
                 }
                 $user->photo = UploadedFileStorage::storePublicImage($request->file('photo'), 'users/photos');
             } catch (\Throwable $e) {
@@ -93,7 +111,7 @@ class ProfileController extends Controller
         if ($request->hasFile('signature')) {
             try {
                 if ($user->signature) {
-                    Storage::disk('public')->delete($user->signature);
+                    SensitiveDocumentStorage::delete($user->signature);
                 }
                 $user->signature = UploadedFileStorage::storePublicImage($request->file('signature'), 'users/signatures');
             } catch (\Throwable $e) {
@@ -110,10 +128,10 @@ class ProfileController extends Controller
                 $bin = base64_decode($b64, true);
                 if ($bin !== false && strlen($bin) <= 512000 && str_starts_with($bin, "\x89PNG\r\n\x1a\n")) {
                     if ($user->signature) {
-                        Storage::disk('public')->delete($user->signature);
+                        SensitiveDocumentStorage::delete($user->signature);
                     }
-                    $path = 'users/signatures/sign-' . $user->id . '-' . now()->format('YmdHis') . '.png';
-                    Storage::disk('public')->put($path, $bin);
+                    $path = 'users/signatures/' . Str::random(40) . '.png';
+                    SensitiveDocumentStorage::put($path, $bin);
                     $user->signature = $path;
                 }
             }

@@ -63,7 +63,7 @@ php artisan key:generate
 php artisan migrate
 npm install
 npm run build
-php artisan storage:link
+# No crear php artisan storage:link
 ```
 
 El script `composer run setup` automatiza la instalación, la creación de `.env`, la clave de aplicación, las migraciones y la compilación frontend. Revisar `.env` antes de usarlo en un entorno compartido.
@@ -115,10 +115,9 @@ Como sesiones, caché y colas usan base de datos por defecto, deben existir y es
 
 ### 5.3 Archivos e integraciones
 
-- Disco `local`: `storage/app/private`, para archivos privados.
-- Disco `public`: `storage/app/public`, para imágenes y archivos gestionados por la aplicación.
-- Enlace requerido: `public/storage` hacia `storage/app/public`.
-- No exponer directamente `storage/app/private` mediante el servidor web.
+- Disco `private`: `storage/app/private`, para fotos, firmas, documentos y PII.
+- Disco `public`: `storage/app/public`, residual. No crear `public/storage` (junction/symlink).
+- `/storage/*` pasa siempre por Laravel (`auth` + tenant). No exponer `storage/app/private` ni `storage/app/public` mediante el servidor web.
 
 ```env
 GOOGLE_MAPS_API_KEY=
@@ -198,7 +197,6 @@ php artisan about
 php artisan route:list
 php artisan queue:failed
 php artisan queue:retry all
-php artisan storage:link
 php artisan optimize:clear
 php artisan test
 ```

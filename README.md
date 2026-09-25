@@ -25,6 +25,6 @@ php artisan key:generate
 php artisan migrate --seed
 npm install
 npm run build
-php artisan storage:link
+# No crear php artisan storage:link: fotos, firmas y documentos se sirven autenticados.
 ```
 

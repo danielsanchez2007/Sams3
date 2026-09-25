@@ -171,11 +171,8 @@
         const applyDesktopState = () => {
             if (isMobile()) return;
             const collapsed = localStorage.getItem(storageKey) === '1';
-            if (collapsed) {
-                sidebar.classList.add('md:w-0', 'md:overflow-hidden', 'md:border-r-0');
-            } else {
-                sidebar.classList.remove('md:w-0', 'md:overflow-hidden', 'md:border-r-0');
-            }
+            sidebar.classList.toggle('is-collapsed', collapsed);
+            toggleBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
         };
 
         const openSidebar = () => {
@@ -229,7 +226,7 @@
                 applyDesktopState();
             } else {
                 sidebar.classList.add('-translate-x-full');
-                sidebar.classList.remove('md:w-0', 'md:overflow-hidden', 'md:border-r-0');
+                sidebar.classList.remove('is-collapsed');
             }
         });
 
@@ -246,9 +243,12 @@
                 if (!overlay || !sidebar || !toggleBtn) return;
                 overlay.classList.add('hidden');
                 document.body.classList.remove('overflow-hidden');
-                toggleBtn.setAttribute('aria-expanded', 'false');
                 if (isMobile()) {
+                    toggleBtn.setAttribute('aria-expanded', 'false');
                     sidebar.classList.add('-translate-x-full');
+                    sidebar.classList.remove('is-collapsed');
+                } else {
+                    applyDesktopState();
                 }
             } catch (e) {}
         });

@@ -4,19 +4,27 @@ namespace App\Http\Controllers;
 
 use App\Policies\PublicFilePolicy;
 use App\Support\SafeStoragePath;
+use App\Support\SensitiveDocumentStorage;
 use Illuminate\Support\Facades\Storage;
 
 class PublicStorageController extends Controller
 {
     public function show(string $path)
     {
-        $relative = SafeStoragePath::relativeWithinPublic($path);
+        $relative = SafeStoragePath::relative($path);
         abort_unless($relative !== null, 404);
-        abort_unless(Storage::disk('public')->exists($relative), 404);
+
+        if (SensitiveDocumentStorage::isSensitivePath($relative)) {
+            SensitiveDocumentStorage::migrateLegacyFromPublic($relative);
+        }
+
+        abort_unless(SensitiveDocumentStorage::exists($relative), 404);
 
         $this->assertTenantCanRead($relative);
 
-        return Storage::disk('public')->response($relative, null, $this->securePublicHeaders());
+        $disk = SensitiveDocumentStorage::diskFor($relative);
+
+        return Storage::disk($disk)->response($relative, null, $this->securePublicHeaders());
     }
 
     private function assertTenantCanRead(string $relative): void

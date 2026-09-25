@@ -641,7 +641,7 @@ CSS;
 
         $logoHtml = '';
         $empresa = $equipo->empresa ?? $equipo->empresa()->first();
-        if ($empresa && !empty($empresa->logo) && Storage::disk('public')->exists($empresa->logo)) {
+        if ($empresa && !empty($empresa->logo)) {
             $logoUri = $this->storagePathToDataUri($empresa->logo);
             if ($logoUri) {
                 $logoHtml = '<img src="' . $logoUri . '" alt="Logo" style="max-height:48px;max-width:160px;margin-bottom:8px;">';

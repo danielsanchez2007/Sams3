@@ -55,6 +55,7 @@ Route::get('/inicio', [DashboardController::class, 'index'])->name('sistema.info
 Route::middleware(['auth'])->get('/storage/{path}', [PublicStorageController::class, 'show'])
     ->where('path', '.*')
     ->name('storage.public');
+Route::middleware(['auth'])->get('/profile/avatar', [ProfileController::class, 'avatar'])->name('profile.avatar');
 
 // Contraseña obligatoria (tras registro / alta): sin este middleware de bloqueo
 Route::middleware(['auth'])->group(function () {

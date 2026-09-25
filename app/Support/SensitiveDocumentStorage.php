@@ -18,7 +18,12 @@ class SensitiveDocumentStorage
         'bajas/',
         'hoja_vida/',
         'formatos/',
-        'equipos/archivos/',
+        'equipos/',
+        'users/',
+        'photos/',
+        'empresas/',
+        'aviso_cumplimientos/',
+        'seed/placeholders/',
     ];
 
     public static function isSensitivePath(string $path): bool
@@ -51,6 +56,58 @@ class SensitiveDocumentStorage
     {
         return Storage::disk(self::DISK)->exists($path)
             || Storage::disk('public')->exists($path);
+    }
+
+    public static function fileAbsolutePath(string $path): ?string
+    {
+        if (!self::exists($path)) {
+            return null;
+        }
+
+        return self::path($path);
+    }
+
+    /**
+     * Mueve todo lo sensible que aún viva en disco public hacia private.
+     */
+    public static function migrateAllLegacyFromPublic(): int
+    {
+        $moved = 0;
+        $publicRoot = realpath(Storage::disk('public')->path(''));
+        if ($publicRoot === false) {
+            return 0;
+        }
+
+        foreach (self::SENSITIVE_PREFIXES as $prefix) {
+            $dir = $publicRoot.DIRECTORY_SEPARATOR.str_replace('/', DIRECTORY_SEPARATOR, rtrim($prefix, '/'));
+            if (!is_dir($dir)) {
+                continue;
+            }
+
+            $iterator = new \RecursiveIteratorIterator(
+                new \RecursiveDirectoryIterator($dir, \FilesystemIterator::SKIP_DOTS)
+            );
+
+            foreach ($iterator as $file) {
+                if (!$file->isFile()) {
+                    continue;
+                }
+
+                $name = $file->getFilename();
+                if ($name === '.htaccess' || $name === '.gitignore') {
+                    continue;
+                }
+
+                $relative = str_replace('\\', '/', substr($file->getPathname(), strlen($publicRoot) + 1));
+                $hadPublic = Storage::disk('public')->exists($relative);
+                self::migrateLegacyFromPublic($relative);
+                if ($hadPublic && Storage::disk(self::DISK)->exists($relative) && !Storage::disk('public')->exists($relative)) {
+                    $moved++;
+                }
+            }
+        }
+
+        return $moved;
     }
 
     /**

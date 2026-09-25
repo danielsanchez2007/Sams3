@@ -67,11 +67,11 @@
         </div>
         <div class="sidebar-user-card">
             <div class="flex items-center gap-3">
-                @if(Auth::user()->photo_url)
-                    <img src="{{ Auth::user()->photo_url }}" alt="" class="sidebar-user-avatar">
+                @if($user->hasDisplayPhoto())
+                    <img src="{{ $user->photo_url }}" alt="" class="sidebar-user-avatar">
                 @else
                     <div class="sidebar-user-avatar sidebar-user-avatar--initials" aria-hidden="true">
-                        {{ strtoupper(mb_substr(trim((string) Auth::user()->name), 0, 1)) }}
+                        {{ strtoupper(mb_substr(trim((string) $user->name), 0, 1)) }}
                     </div>
                 @endif
                 <div class="min-w-0 flex-1">

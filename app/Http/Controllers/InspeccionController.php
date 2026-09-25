@@ -21,6 +21,26 @@ use PhpOffice\PhpSpreadsheet\Writer\Html as SpreadsheetHtmlWriter;
 
 class InspeccionController extends Controller
 {
+    private function assertUsersInActiveEmpresa(array $userIds): void
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $userIds))));
+        if ($ids === []) {
+            return;
+        }
+
+        $empresaId = \App\Services\EmpresaContext::resolveId();
+        abort_unless($empresaId, 403, 'Debes seleccionar una empresa activa.');
+
+        $count = User::query()
+            ->whereIn('id', $ids)
+            ->where(function ($q) use ($empresaId) {
+                $q->where('empresa_id', $empresaId)->orWhereNull('empresa_id');
+            })
+            ->count();
+
+        abort_unless($count === count($ids), 403, 'Hay usuarios que no pertenecen a la empresa activa.');
+    }
+
     private function ensureCanEditInspeccion(): void
     {
         $this->assertCanEditModule('inspeccion');
@@ -231,6 +251,7 @@ class InspeccionController extends Controller
         $fechaInspeccion = now()->toDateString();
 
         $selectedIds = array_values(array_filter(array_map('intval', (array) ($request->input('selected_user_ids') ?? []))));
+        $this->assertUsersInActiveEmpresa(array_merge([(int) $request->input('inspector_user_id')], $selectedIds));
 
         $sanitizedHtml = HtmlSanitizer::sanitizeUserHtml((string) $request->input('edited_html'));
 
@@ -289,6 +310,7 @@ class InspeccionController extends Controller
         ]);
 
         $selectedIds = array_values(array_filter(array_map('intval', (array) ($request->input('selected_user_ids') ?? []))));
+        $this->assertUsersInActiveEmpresa(array_merge([(int) $request->input('inspector_user_id')], $selectedIds));
 
         $sanitizedHtml = HtmlSanitizer::sanitizeUserHtml((string) $request->input('edited_html'));
 
@@ -569,7 +591,7 @@ class InspeccionController extends Controller
     private function storagePathToImageSrc(string $path, bool $forPdf): ?string
     {
         $relative = ltrim($path, '/');
-        if (!Storage::disk('public')->exists($relative)) {
+        if (!SensitiveDocumentStorage::exists($relative)) {
             return null;
         }
         if (!$forPdf) {

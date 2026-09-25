@@ -87,7 +87,12 @@ class UploadedFileStorage
         [$contents, $extension] = $optimized;
         $filename = Str::random(40) . '.' . $extension;
         $path = rtrim($directory, '/') . '/' . $filename;
-        Storage::disk('public')->put($path, $contents);
+
+        if (SensitiveDocumentStorage::isSensitivePath($path)) {
+            SensitiveDocumentStorage::put($path, $contents);
+        } else {
+            Storage::disk('public')->put($path, $contents);
+        }
 
         return $path;
     }

@@ -1,8 +1,7 @@
-<FilesMatch "(?i)\.(pdf|xlsx|xls|docx|html)$">
-    <IfModule mod_authz_core.c>
-        Require all denied
-    </IfModule>
-    <IfModule !mod_authz_core.c>
-        Deny from all
-    </IfModule>
-</FilesMatch>
+# Defensa en profundidad: si un junction/symlink sigue vivo, Apache no sirve nada de este disco.
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+<IfModule !mod_authz_core.c>
+    Deny from all
+</IfModule>

@@ -7,9 +7,9 @@ use App\Models\Empresa;
 use App\Models\Grupo;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\SensitiveDocumentStorage;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Storage;
 
 class UserDemoSeeder extends Seeder
 {
@@ -34,12 +34,9 @@ class UserDemoSeeder extends Seeder
                 'grupo_id' => $grupoA?->id,
                 'empresa_id' => null,
                 'active' => true,
-                // Por seguridad, puedes ponerlo en true para forzar cambio al primer ingreso.
                 'must_change_password' => false,
                 'document_type' => 'CC',
                 'document_number' => '1079176426',
-                'photo' => 'seed/placeholders/user.png',
-                'signature' => 'seed/placeholders/signature.png',
             ]
         );
 
@@ -131,20 +128,15 @@ class UserDemoSeeder extends Seeder
 
     private function ensurePlaceholdersExist(): void
     {
-        if (!Storage::disk('public')->exists('seed/placeholders')) {
-            Storage::disk('public')->makeDirectory('seed/placeholders');
-        }
-
-        // 1x1 PNG transparente
         $png = base64_decode(
             'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMB/axH4i0AAAAASUVORK5CYII='
         );
 
-        if (!Storage::disk('public')->exists('seed/placeholders/user.png')) {
-            Storage::disk('public')->put('seed/placeholders/user.png', $png);
+        if (!SensitiveDocumentStorage::exists('seed/placeholders/user.png')) {
+            SensitiveDocumentStorage::put('seed/placeholders/user.png', $png);
         }
-        if (!Storage::disk('public')->exists('seed/placeholders/signature.png')) {
-            Storage::disk('public')->put('seed/placeholders/signature.png', $png);
+        if (!SensitiveDocumentStorage::exists('seed/placeholders/signature.png')) {
+            SensitiveDocumentStorage::put('seed/placeholders/signature.png', $png);
         }
     }
 }

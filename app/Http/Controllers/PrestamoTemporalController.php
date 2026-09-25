@@ -9,6 +9,7 @@ use App\Models\PrestamoTemporalItem;
 use App\Models\User;
 use App\Services\EmpresaContext;
 use App\Support\HtmlSanitizer;
+use App\Support\TenantGuard;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
@@ -120,9 +121,9 @@ class PrestamoTemporalController extends Controller
             'edited_html' => ['required', 'string', 'max:500000'],
         ]);
 
-        $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
+        $empresaId = EmpresaContext::resolveId();
         $toUser = User::query()->findOrFail((int) $request->input('to_user_id'));
-        if ($empresaId && (int) $toUser->empresa_id !== (int) $empresaId) {
+        if (!$empresaId || (int) $toUser->empresa_id !== (int) $empresaId) {
             return back()->with('error', 'El usuario seleccionado no pertenece a la empresa activa.');
         }
 
@@ -130,11 +131,15 @@ class PrestamoTemporalController extends Controller
         $equipos = Equipo::query()
             ->with('prestamoTemporalItems.prestamo')
             ->whereIn('id', $equipoIds)
-            ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
+            ->where('empresa_id', $empresaId)
             ->get();
 
-        if ($equipos->isEmpty()) {
-            return back()->with('error', 'No hay equipos válidos para prestar.');
+        if ($equipos->count() !== $equipoIds->count()) {
+            return back()->with('error', 'Hay equipos que no pertenecen a la empresa activa.');
+        }
+
+        foreach ($equipos as $equipo) {
+            TenantGuard::assertEquipo($equipo);
         }
 
         $activos = $equipos->filter(function (Equipo $equipo) {
@@ -364,18 +369,22 @@ class PrestamoTemporalController extends Controller
             'equipo_ids.*' => ['required', 'integer', 'exists:equipos,id'],
         ]);
 
-        $empresaId = EmpresaContext::empresaId() ?: auth()->user()?->empresa_id;
+        $empresaId = EmpresaContext::resolveId();
         $toUser = User::query()->findOrFail((int) $request->input('to_user_id'));
-        if ($empresaId && (int) $toUser->empresa_id !== (int) $empresaId) {
+        if (!$empresaId || (int) $toUser->empresa_id !== (int) $empresaId) {
             abort(422, 'El usuario destino no pertenece a la empresa activa.');
         }
         $prestador = auth()->user();
         $equipoIds = collect((array) $request->input('equipo_ids'))->map(fn ($v) => (int) $v)->unique()->values()->all();
         $equipos = Equipo::query()
             ->whereIn('id', $equipoIds)
-            ->when($empresaId, fn ($q) => $q->where('empresa_id', $empresaId))
+            ->where('empresa_id', $empresaId)
             ->orderBy('nombre')
             ->get(['id', 'nombre', 'codigo']);
+        abort_unless($equipos->count() === count($equipoIds), 403, 'Hay equipos que no pertenecen a la empresa activa.');
+        foreach ($equipos as $equipo) {
+            TenantGuard::assertEquipo($equipo);
+        }
         $fechaInicio = Carbon::parse($request->input('fecha_salida'))->startOfDay();
         $fechaFin = Carbon::parse($request->input('fecha_fin'))->startOfDay();
         $renderedHtml = $this->buildTemplateHtml($toUser, $prestador, $equipos, $fechaInicio, $fechaFin);

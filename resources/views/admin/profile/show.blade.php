@@ -180,7 +180,7 @@
                     <label class="block text-sm font-medium text-gray-700 mb-1">Foto *</label>
                     <div class="flex flex-col sm:flex-row items-start gap-4">
                         <div class="flex-shrink-0 w-24 h-24 rounded-xl border-2 border-gray-200 overflow-hidden bg-gray-100">
-                            @if($user->photo)
+                            @if($user->hasDisplayPhoto())
                                 <img id="photo-preview" src="{{ $user->photo_url }}" alt="Foto" class="w-full h-full object-cover">
                             @else
                                 <div id="photo-preview" class="w-full h-full flex items-center justify-center text-gray-400">

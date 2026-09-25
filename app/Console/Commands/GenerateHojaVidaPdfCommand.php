@@ -240,8 +240,9 @@ class GenerateHojaVidaPdfCommand extends Command
         for ($i = 1; $i <= 6; $i++) {
             $token = '{{IMAGEN_' . $i . '}}';
             $img = $imagenes[$i - 1] ?? null;
-            if ($img && !empty($img->path) && Storage::disk('public')->exists($img->path)) {
-                $html = str_replace($token, '<img src="file:///' . str_replace('\\', '/', Storage::disk('public')->path($img->path)) . '" />', $html);
+            if ($img && !empty($img->path) && SensitiveDocumentStorage::exists($img->path)) {
+                $abs = str_replace('\\', '/', (string) SensitiveDocumentStorage::fileAbsolutePath($img->path));
+                $html = str_replace($token, '<img src="file:///' . $abs . '" />', $html);
             } else {
                 $html = str_replace($token, '', $html);
             }
@@ -250,14 +251,16 @@ class GenerateHojaVidaPdfCommand extends Command
         $userPhoto = '{{FOTO_USUARIO}}';
         $userSign = '{{FIRMA_USUARIO}}';
 
-        if ($user && $user->photo && Storage::disk('public')->exists($user->photo)) {
-            $html = str_replace($userPhoto, '<img src="file:///' . str_replace('\\', '/', Storage::disk('public')->path($user->photo)) . '" />', $html);
+        if ($user && $user->photo && SensitiveDocumentStorage::exists($user->photo)) {
+            $abs = str_replace('\\', '/', (string) SensitiveDocumentStorage::fileAbsolutePath($user->photo));
+            $html = str_replace($userPhoto, '<img src="file:///' . $abs . '" />', $html);
         } else {
             $html = str_replace($userPhoto, '', $html);
         }
 
-        if ($user && $user->signature && Storage::disk('public')->exists($user->signature)) {
-            $html = str_replace($userSign, '<img src="file:///' . str_replace('\\', '/', Storage::disk('public')->path($user->signature)) . '" />', $html);
+        if ($user && $user->signature && SensitiveDocumentStorage::exists($user->signature)) {
+            $abs = str_replace('\\', '/', (string) SensitiveDocumentStorage::fileAbsolutePath($user->signature));
+            $html = str_replace($userSign, '<img src="file:///' . $abs . '" />', $html);
         } else {
             $html = str_replace($userSign, '', $html);
         }
@@ -288,12 +291,11 @@ class GenerateHojaVidaPdfCommand extends Command
                     return $m[0];
                 }
 
-                if (!Storage::disk('public')->exists($rel)) {
+                if (!SensitiveDocumentStorage::exists($rel)) {
                     return $m[0];
                 }
 
-                $abs = Storage::disk('public')->path($rel);
-                $abs = str_replace('\\', '/', $abs);
+                $abs = str_replace('\\', '/', (string) SensitiveDocumentStorage::fileAbsolutePath($rel));
                 return $prefix . 'file:///' . $abs . $suffix;
             }, $html) ?? $html;
         }

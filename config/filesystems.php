@@ -81,7 +81,7 @@ return [
     */
 
     'links' => [
-        public_path('storage') => storage_path('app/public'),
+        // Vacío a propósito: /storage se sirve autenticado. No crear el junction.
     ],
 
 ];

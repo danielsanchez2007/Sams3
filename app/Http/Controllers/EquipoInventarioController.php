@@ -24,7 +24,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use App\Support\SensitiveDocumentStorage;
 use App\Support\UploadedFileStorage;
-use Illuminate\Support\Facades\Storage;
 
 class EquipoInventarioController extends Controller
 {
@@ -425,7 +424,7 @@ class EquipoInventarioController extends Controller
                 'archivo_file' => ['file', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             ]);
 
-            $path = $file->store('equipos/certificacion', 'public');
+            $path = UploadedFileStorage::storePublicImage($file, 'equipos/certificacion');
             EquipoImagen::create([
                 'equipo_id' => $equipo->id,
                 'tipo' => 'certificacion_evidencia',
@@ -503,10 +502,7 @@ class EquipoInventarioController extends Controller
         }
 
         if ($imagen->path) {
-            try {
-                Storage::disk('public')->delete($imagen->path);
-            } catch (\Throwable $e) {
-            }
+            SensitiveDocumentStorage::delete($imagen->path);
         }
 
         $imagen->delete();
@@ -534,10 +530,7 @@ class EquipoInventarioController extends Controller
         DB::transaction(function () use ($equipo) {
             foreach ($equipo->imagenes as $img) {
                 if ($img->path) {
-                    try {
-                        Storage::disk('public')->delete($img->path);
-                    } catch (\Throwable $e) {
-                    }
+                    SensitiveDocumentStorage::delete($img->path);
                 }
                 $img->delete();
             }
@@ -636,10 +629,7 @@ class EquipoInventarioController extends Controller
                 $imgs = $equipo->imagenes()->whereIn('id', $deleteIds)->get();
                 foreach ($imgs as $img) {
                     if ($img->path) {
-                        try {
-                            Storage::disk('public')->delete($img->path);
-                        } catch (\Throwable $e) {
-                        }
+                        SensitiveDocumentStorage::delete($img->path);
                     }
                     $img->delete();
                 }
@@ -652,10 +642,7 @@ class EquipoInventarioController extends Controller
                     $old = $equipo->imagenes()->where('tipo', 'kit_general')->get();
                     foreach ($old as $img) {
                         if ($img->path) {
-                            try {
-                                Storage::disk('public')->delete($img->path);
-                            } catch (\Throwable $e) {
-                            }
+                            SensitiveDocumentStorage::delete($img->path);
                         }
                         $img->delete();
                     }
@@ -948,7 +935,7 @@ class EquipoInventarioController extends Controller
     {
         if ($request->hasFile('imagenes_general')) {
             foreach ((array) $request->file('imagenes_general') as $file) {
-                $path = $file->store('equipos/general', 'public');
+                $path = UploadedFileStorage::storePublicImage($file, 'equipos/general');
                 EquipoImagen::create([
                     'equipo_id' => $equipo->id,
                     'tipo' => 'general',
@@ -959,7 +946,7 @@ class EquipoInventarioController extends Controller
 
         if ($request->hasFile('imagenes_etiqueta')) {
             foreach ((array) $request->file('imagenes_etiqueta') as $file) {
-                $path = $file->store('equipos/etiqueta', 'public');
+                $path = UploadedFileStorage::storePublicImage($file, 'equipos/etiqueta');
                 EquipoImagen::create([
                     'equipo_id' => $equipo->id,
                     'tipo' => 'etiqueta',
@@ -970,7 +957,7 @@ class EquipoInventarioController extends Controller
 
         if ($request->hasFile('certificacion_evidencias')) {
             foreach ((array) $request->file('certificacion_evidencias') as $file) {
-                $path = $file->store('equipos/certificacion', 'public');
+                $path = UploadedFileStorage::storePublicImage($file, 'equipos/certificacion');
                 EquipoImagen::create([
                     'equipo_id' => $equipo->id,
                     'tipo' => 'certificacion_evidencia',
@@ -983,7 +970,7 @@ class EquipoInventarioController extends Controller
     private function storeKit(Request $request, Equipo $equipo): void
     {
         if ($request->hasFile('kit_imagen_general')) {
-            $path = $request->file('kit_imagen_general')->store('equipos/kit', 'public');
+            $path = UploadedFileStorage::storePublicImage($request->file('kit_imagen_general'), 'equipos/kit');
             EquipoImagen::create([
                 'equipo_id' => $equipo->id,
                 'tipo' => 'kit_general',

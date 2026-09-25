@@ -9,9 +9,9 @@ use App\Models\Grupo;
 use App\Models\Empresa;
 use App\Services\EmpresaContext;
 use App\Support\UploadedFileStorage;
+use App\Support\SensitiveDocumentStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -617,7 +617,7 @@ class UserController extends Controller
 
         if ($request->hasFile('photo')) {
             if ($user->photo) {
-                Storage::disk('public')->delete($user->photo);
+                SensitiveDocumentStorage::delete($user->photo);
             }
             $path = UploadedFileStorage::storePublicImage($request->file('photo'), 'users/photos');
             $user->update(['photo' => $path]);
@@ -625,7 +625,7 @@ class UserController extends Controller
 
         if ($request->hasFile('signature')) {
             if ($user->signature) {
-                Storage::disk('public')->delete($user->signature);
+                SensitiveDocumentStorage::delete($user->signature);
             }
             $path = UploadedFileStorage::storePublicImage($request->file('signature'), 'users/signatures');
             $user->update(['signature' => $path]);

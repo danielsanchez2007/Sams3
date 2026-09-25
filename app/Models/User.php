@@ -148,14 +148,41 @@ class User extends Authenticatable
             && !empty($this->document_number);
     }
 
+    public function hasDisplayPhoto(): bool
+    {
+        return $this->isDisplayableMediaPath($this->photo);
+    }
+
     public function getPhotoUrlAttribute(): ?string
     {
+        if (!$this->hasDisplayPhoto()) {
+            return null;
+        }
+
+        if (auth()->id() && (int) auth()->id() === (int) $this->id) {
+            return route('profile.avatar', ['v' => $this->updated_at?->timestamp ?? time()]);
+        }
+
         return $this->buildMediaUrl($this->photo);
     }
 
     public function getSignatureUrlAttribute(): ?string
     {
+        if (!$this->isDisplayableMediaPath($this->signature)) {
+            return null;
+        }
+
         return $this->buildMediaUrl($this->signature);
+    }
+
+    private function isDisplayableMediaPath(?string $path): bool
+    {
+        $clean = trim((string) $path);
+        if ($clean === '' || str_contains($clean, 'seed/placeholders/')) {
+            return false;
+        }
+
+        return \App\Support\SensitiveDocumentStorage::exists($clean);
     }
 
     private function buildMediaUrl(?string $path): ?string

@@ -128,18 +128,18 @@ class HojaVidaController extends Controller
         for ($i = 1; $i <= 6; $i++) {
             $token = '{{IMAGEN_' . $i . '}}';
             $img = isset($imagenes[$i - 1]) ? $imagenes[$i - 1] : null;
-            if ($img && $img->path && Storage::disk('public')->exists($img->path)) {
-                $imageTokens[$token] = Storage::disk('public')->path($img->path);
+            if ($img && $img->path && SensitiveDocumentStorage::exists($img->path)) {
+                $imageTokens[$token] = SensitiveDocumentStorage::fileAbsolutePath($img->path);
             } else {
                 $imageTokens[$token] = null;
             }
         }
 
-        $imageTokens['{{FOTO_USUARIO}}'] = ($user && $user->photo && Storage::disk('public')->exists($user->photo))
-            ? Storage::disk('public')->path($user->photo)
+        $imageTokens['{{FOTO_USUARIO}}'] = ($user && $user->photo)
+            ? SensitiveDocumentStorage::fileAbsolutePath($user->photo)
             : null;
-        $imageTokens['{{FIRMA_USUARIO}}'] = ($user && $user->signature && Storage::disk('public')->exists($user->signature))
-            ? Storage::disk('public')->path($user->signature)
+        $imageTokens['{{FIRMA_USUARIO}}'] = ($user && $user->signature)
+            ? SensitiveDocumentStorage::fileAbsolutePath($user->signature)
             : null;
 
         $drawingSpecs = [

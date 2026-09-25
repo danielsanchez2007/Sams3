@@ -10,7 +10,7 @@ class SamsPackageCommand extends Command
 {
     protected $signature = 'sams:package {--skip-build : No recompilar Vite}';
 
-    protected $description = 'Genera un ZIP listo para subir (código, vendor, estilos y sin .env)';
+    protected $description = 'Genera un ZIP listo para subir (código, vendor, estilos y sin .env ni datos)';
 
     public function handle(): int
     {
@@ -51,13 +51,6 @@ class SamsPackageCommand extends Command
             return self::FAILURE;
         }
 
-        $excludeDirs = [
-            '.git', '.idea', '.vscode', '.cursor', 'node_modules', 'tests', 'dist',
-            'storage/logs', 'storage/framework/cache/data', 'storage/framework/sessions',
-            'storage/framework/views', 'storage/pail',
-        ];
-        $excludeFiles = ['.env', '.env.backup', '.env.production', '.env.temp', 'public/hot', 'auth.json'];
-
         $root = realpath(base_path());
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)
@@ -68,7 +61,7 @@ class SamsPackageCommand extends Command
             $absolute = $file->getPathname();
             $relative = str_replace('\\', '/', substr($absolute, strlen($root) + 1));
 
-            if ($this->excluded($relative, $excludeDirs, $excludeFiles)) {
+            if (self::pathIsExcluded($relative)) {
                 continue;
             }
 
@@ -87,17 +80,15 @@ class SamsPackageCommand extends Command
         return self::SUCCESS;
     }
 
-    /**
-     * @param  list<string>  $excludeDirs
-     * @param  list<string>  $excludeFiles
-     */
-    private function excluded(string $relative, array $excludeDirs, array $excludeFiles): bool
+    public static function pathIsExcluded(string $relative): bool
     {
-        if (in_array($relative, $excludeFiles, true)) {
+        $relative = str_replace('\\', '/', $relative);
+
+        if (in_array($relative, self::defaultExcludeFiles(), true)) {
             return true;
         }
 
-        foreach ($excludeDirs as $dir) {
+        foreach (self::defaultExcludeDirs() as $dir) {
             if ($relative === $dir || str_starts_with($relative, $dir.'/')) {
                 return true;
             }
@@ -105,7 +96,30 @@ class SamsPackageCommand extends Command
 
         return str_ends_with($relative, '.log')
             || str_contains($relative, '/.git/')
-            || str_ends_with($relative, '.sqlite');
+            || str_ends_with($relative, '.sqlite')
+            || str_ends_with($relative, '.sql');
+    }
+
+    /** @return list<string> */
+    public static function defaultExcludeDirs(): array
+    {
+        return [
+            '.git', '.idea', '.vscode', '.cursor', 'node_modules', 'tests', 'dist',
+            'storage/logs', 'storage/framework/cache/data', 'storage/framework/sessions',
+            'storage/framework/views', 'storage/pail', 'storage/debugbar',
+            'storage/app/private',
+            'storage/app/public',
+            'public/storage',
+        ];
+    }
+
+    /** @return list<string> */
+    public static function defaultExcludeFiles(): array
+    {
+        return [
+            '.env', '.env.backup', '.env.production', '.env.temp', '.env.testing',
+            'public/hot', 'auth.json',
+        ];
     }
 
     private function instructions(): string
@@ -114,10 +128,11 @@ class SamsPackageCommand extends Command
 SAMS — cómo subir el sistema
 ============================
 
-1. Sube TODO este ZIP al hosting (descomprímelo en public_html o en la carpeta del dominio).
+1. Sube este ZIP al hosting (descomprímelo en public_html o en la carpeta del dominio).
 2. NO reemplaces el archivo .env del servidor (ahí está la conexión a MySQL).
-3. Si la base es nueva, importa el SQL en phpMyAdmin.
-4. Abre /inicio — los estilos ya van en public/build y public/css/sams.css
+3. Si la base es nueva: php artisan migrate --force (y seed solo si aplica). NO importes dumps SQL de desarrollo.
+4. NO ejecutes php artisan storage:link. Las fotos, firmas y documentos se sirven autenticados.
+5. Abre /inicio — los estilos ya van en public/build y public/css/sams.css
 
 Permisos: storage/ y bootstrap/cache/ deben ser escribibles.
 No subas public/hot (rompe los estilos).

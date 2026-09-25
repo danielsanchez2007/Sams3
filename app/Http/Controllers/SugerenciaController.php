@@ -5,9 +5,10 @@ namespace App\Http\Controllers;
 use App\Models\AvisoEmpresa;
 use App\Models\Empresa;
 use App\Services\EmpresaContext;
+use App\Support\SensitiveDocumentStorage;
+use App\Support\UploadedFileStorage;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Storage;
 
 class SugerenciaController extends Controller
 {
@@ -80,14 +81,14 @@ class SugerenciaController extends Controller
         }
 
         $request->validate([
-            'imagen' => 'required|image|mimes:jpeg,jpg,png,gif,webp|max:5120',
+            'imagen' => 'required|image|mimes:jpeg,jpg,png,webp|max:5120',
         ]);
 
-        if ($aviso->imagen_cumplimiento_path && Storage::disk('public')->exists($aviso->imagen_cumplimiento_path)) {
-            Storage::disk('public')->delete($aviso->imagen_cumplimiento_path);
+        if ($aviso->imagen_cumplimiento_path) {
+            SensitiveDocumentStorage::delete($aviso->imagen_cumplimiento_path);
         }
 
-        $path = $request->file('imagen')->store('aviso_cumplimientos', 'public');
+        $path = UploadedFileStorage::storePublicImage($request->file('imagen'), 'aviso_cumplimientos');
 
         $aviso->update([
             'tipo' => 'ok',

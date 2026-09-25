@@ -10,6 +10,7 @@ use App\Models\EquipoAsignacionSolicitudItem;
 use App\Models\User;
 use App\Services\EmpresaContext;
 use App\Support\HtmlSanitizer;
+use App\Support\TenantGuard;
 use Illuminate\Http\Request;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -146,24 +147,23 @@ class AsignarController extends Controller
             'equipo_ids.*' => 'integer|exists:equipos,id',
         ]);
 
-        $userId = (int) $request->user_id;
-        $equipoIds = array_map('intval', (array) $request->equipo_ids);
-        $equipoIds = array_unique($equipoIds);
+        $user = $this->requireUserInActiveEmpresa((int) $request->user_id);
+        $equipos = $this->requireEquiposInActiveEmpresa((array) $request->equipo_ids);
 
         $assigned = [];
         $skipped = [];
 
-        foreach ($equipoIds as $equipoId) {
-            $exists = EquipoAsignacion::where('equipo_id', $equipoId)->exists();
+        foreach ($equipos as $equipo) {
+            $exists = EquipoAsignacion::where('equipo_id', $equipo->id)->exists();
             if ($exists) {
-                $skipped[] = $equipoId;
+                $skipped[] = $equipo->id;
                 continue;
             }
             EquipoAsignacion::create([
-                'user_id' => $userId,
-                'equipo_id' => $equipoId,
+                'user_id' => $user->id,
+                'equipo_id' => $equipo->id,
             ]);
-            $assigned[] = $equipoId;
+            $assigned[] = $equipo->id;
         }
 
         return response()->json([
@@ -186,18 +186,16 @@ class AsignarController extends Controller
         ]);
 
         $toUser = User::query()->findOrFail((int) $request->input('to_user_id'));
-        $empresaId = $this->resolveEmpresaId();
-        if ($empresaId && (int) $toUser->empresa_id !== (int) $empresaId) {
+        if (!$this->userBelongsToActiveEmpresa($toUser)) {
             return redirect()->route('asignar.index')->with('error', 'Solo puedes enviar solicitudes a usuarios de la empresa activa.');
         }
         $equipoIds = collect((array) $request->input('equipo_ids'))->map(fn ($v) => (int) $v)->unique()->values()->all();
-
-        $equipos = Equipo::query()
-            ->with(['asignacion.user:id,name,last_name', 'tipoEquipo:id,nombre,alias', 'claseEquipo:id,nombre,alias'])
-            ->whereIn('id', $equipoIds)
-            ->get();
-
-        if ($equipos->isEmpty()) {
+        $equipos = $this->equiposOwnedByActiveEmpresaOrFail($equipoIds, [
+            'asignacion.user:id,name,last_name',
+            'tipoEquipo:id,nombre,alias',
+            'claseEquipo:id,nombre,alias',
+        ]);
+        if ($equipos === null) {
             return redirect()->route('asignar.index')->with('error', 'No hay equipos válidos seleccionados.');
         }
 
@@ -222,21 +220,13 @@ class AsignarController extends Controller
         ]);
 
         $toUserId = (int) $request->input('to_user_id');
-        $empresaId = $this->resolveEmpresaId();
-        if ($empresaId) {
-            $targetExistsInEmpresa = User::query()->where('id', $toUserId)->where('empresa_id', $empresaId)->exists();
-            if (!$targetExistsInEmpresa) {
-                return redirect()->route('asignar.index')->with('error', 'El usuario destino no pertenece a la empresa activa.');
-            }
+        $toUser = User::query()->findOrFail($toUserId);
+        if (!$this->userBelongsToActiveEmpresa($toUser)) {
+            return redirect()->route('asignar.index')->with('error', 'El usuario destino no pertenece a la empresa activa.');
         }
         $equipoIds = collect((array) $request->input('equipo_ids'))->map(fn ($v) => (int) $v)->unique()->values()->all();
-
-        $equipos = Equipo::query()
-            ->with('asignacion.user:id,name,last_name')
-            ->whereIn('id', $equipoIds)
-            ->get();
-
-        if ($equipos->isEmpty()) {
+        $equipos = $this->equiposOwnedByActiveEmpresaOrFail($equipoIds, ['asignacion.user:id,name,last_name']);
+        if ($equipos === null) {
             return redirect()->route('asignar.index')->with('error', 'No se encontraron equipos para enviar la solicitud.');
         }
 
@@ -540,9 +530,12 @@ class AsignarController extends Controller
     public function destroy(Request $request, int $asignacion)
     {
         $this->assertCanEditModule('asignar');
-        $a = EquipoAsignacion::find($asignacion);
+        $a = EquipoAsignacion::query()->with('equipo')->find($asignacion);
         if (!$a) {
             return response()->json(['success' => false, 'message' => 'Asignación no encontrada.'], 404);
+        }
+        if ($a->equipo) {
+            TenantGuard::assertEquipo($a->equipo);
         }
         $a->delete();
         return response()->json(['success' => true, 'message' => 'Asignación eliminada.']);
@@ -600,7 +593,66 @@ class AsignarController extends Controller
 
     private function resolveEmpresaId(): ?int
     {
-        return EmpresaContext::empresaId() ?? auth()->user()?->empresa_id;
+        return EmpresaContext::resolveId();
+    }
+
+    private function requireUserInActiveEmpresa(int $userId): User
+    {
+        $user = User::query()->findOrFail($userId);
+        abort_unless($this->userBelongsToActiveEmpresa($user), 403, 'El usuario no pertenece a la empresa activa.');
+
+        return $user;
+    }
+
+    private function userBelongsToActiveEmpresa(User $user): bool
+    {
+        $empresaId = $this->resolveEmpresaId();
+        if (!$empresaId) {
+            return false;
+        }
+
+        return (int) $user->empresa_id === (int) $empresaId;
+    }
+
+    /**
+     * @param  list<int|string>  $ids
+     * @return \Illuminate\Support\Collection<int, Equipo>
+     */
+    private function requireEquiposInActiveEmpresa(array $ids)
+    {
+        $equipos = $this->equiposOwnedByActiveEmpresaOrFail($ids);
+        abort_unless($equipos !== null, 403, 'Hay equipos que no pertenecen a la empresa activa.');
+
+        return $equipos;
+    }
+
+    /**
+     * @param  list<int|string>  $ids
+     * @param  list<string>  $with
+     * @return \Illuminate\Support\Collection<int, Equipo>|null
+     */
+    private function equiposOwnedByActiveEmpresaOrFail(array $ids, array $with = [])
+    {
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if ($ids === []) {
+            return null;
+        }
+
+        $query = Equipo::query()->whereIn('id', $ids);
+        if ($with !== []) {
+            $query->with($with);
+        }
+
+        $equipos = $query->get();
+        if ($equipos->count() !== count($ids)) {
+            return null;
+        }
+
+        foreach ($equipos as $equipo) {
+            TenantGuard::assertEquipo($equipo);
+        }
+
+        return $equipos;
     }
 
     private function buildMisCosasData(int $userId): array

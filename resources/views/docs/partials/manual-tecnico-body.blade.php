@@ -234,14 +234,13 @@ php artisan key:generate
 php artisan migrate --seed
 npm install
 npm run build
-php artisan storage:link</pre>
+# No crear php artisan storage:link</pre>
 <h3>6.3 Comandos Artisan útiles</h3>
 <table>
     <thead><tr><th>Comando</th><th>Descripción</th></tr></thead>
     <tbody>
         <tr><td><code>php artisan migrate</code></td><td>Aplicar migraciones de base de datos</td></tr>
         <tr><td><code>php artisan db:seed</code></td><td>Ejecutar seeders (roles, empresas demo)</td></tr>
-        <tr><td><code>php artisan storage:link</code></td><td>Enlace simbólico para archivos públicos</td></tr>
         <tr><td><code>php artisan config:cache</code></td><td>Caché de configuración (producción)</td></tr>
         <tr><td><code>php artisan route:list</code></td><td>Listado completo de rutas HTTP</td></tr>
         <tr><td><code>php artisan test</code></td><td>Ejecutar pruebas PHPUnit</td></tr>
@@ -673,7 +672,7 @@ storage/app/public/     # Archivos subidos</pre>
     <tbody>
         <tr><td>419 Page Expired</td><td>Token CSRF expirado</td><td>Recargar; verificar SESSION_DRIVER</td></tr>
         <tr><td>403 en módulo</td><td>Permiso o módulo empresa = none</td><td>Revisar roles y <code>empresas.modulos</code></td></tr>
-        <tr><td>Imágenes no cargan</td><td>Falta storage:link</td><td><code>php artisan storage:link</code></td></tr>
+        <tr><td>Imágenes no cargan</td><td>Sesión o tenant; no usar storage:link</td><td>Iniciar sesión; verificar que <code>public/.htaccess</code> reescribe <code>/storage</code> a Laravel</td></tr>
         <tr><td>500 en subida Excel</td><td>MIME o límite PHP</td><td>Revisar upload_max_filesize; logs</td></tr>
         <tr><td>PDF en blanco</td><td>CSS complejo o memoria</td><td>Simplificar plantilla; subir memory_limit</td></tr>
         <tr><td>Estilos desactualizados o logo enorme</td><td>Falta <code>public/build</code> o quedó el archivo <code>public/hot</code></td><td>Subir el ZIP de <code>sams:package</code>; borrar <code>public/hot</code>; recargar con Ctrl+F5</td></tr>

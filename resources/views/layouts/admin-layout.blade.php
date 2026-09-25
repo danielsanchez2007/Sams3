@@ -477,6 +477,30 @@
             background: rgba(255, 255, 255, 0.14) !important;
             border: 1px solid rgba(255, 255, 255, 0.22) !important;
         }
+
+        header.glass #sidebarToggle {
+            position: relative;
+            z-index: 20;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        @media (min-width: 768px) {
+            aside#sidebar.pw-sidebar {
+                overflow: hidden;
+            }
+
+            aside#sidebar.pw-sidebar.is-collapsed {
+                width: 0 !important;
+                min-width: 0 !important;
+                max-width: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: 0 !important;
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
     </style>
 
     @php
